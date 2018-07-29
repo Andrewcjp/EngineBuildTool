@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/EngineBuildTool
+/EngineBuildTool/bin/Debug
+/EngineBuildTool/obj
+/EngineBuildTool/EngineBuildTool.csproj.user
