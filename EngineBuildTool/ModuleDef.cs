@@ -11,33 +11,36 @@ namespace EngineBuildTool
     public class ModuleDef
     {
         public string ModuleName = "";
-        public List<string> ModuleIncludes = new List<string>();
-        public List<LibRef> ModuleLibs = new List<LibRef>();
         public enum ModuleType { EXE, DLL, LIB };
         public ModuleType ModuleOuputType = ModuleType.DLL;
         public List<string> ModuleDepends = new List<string>();
         public string SolutionFolderPath = "";
         public string PCH = "";
-
-        public List<string> AdditionalIncludeDirectories = new List<string>();
-        public List<string> IncludeDirectories = new List<string>();
-
+        public string SourceFileSearchDir = "";
         public List<LibSearchPath> AdditonalLibSearchPaths = new List<LibSearchPath>();
         public List<string> LibNames = new List<string>();
+        public List<string> IncludeDirectories = new List<string>();
+
+        //Generated
+        public List<string> ModuleSourceFiles = new List<string>();
+        public List<LibRef> ModuleLibs = new List<LibRef>();
+
+        public List<string> PreProcessorDefines = new List<string>();
         public ModuleDef()
         { }
-
+        public void PostInit()
+        {
+            PreProcessorDefines.Add(ModuleName.ToUpper() + "_EXPORT");
+        }
         public void GetIncludeDirs(ref List<string> List)
         {
             List.AddRange(IncludeDirectories);
-            List.AddRange(AdditionalIncludeDirectories);
             for (int i = 0; i < List.Count; i++)
             {
                 List[i] = CmakeGenerator.SanitizePath(List[i]);
             }
         }
-        public List<string> ModuleSourceFiles = new List<string>();
-        public string SourceFileSearchDir = "";
+
         public void GatherSourceFiles()
         {
             if (ModuleSourceFiles.Count != 0)
@@ -47,6 +50,7 @@ namespace EngineBuildTool
             GetFiles("*.h");
             GetFiles("*.cpp");
         }
+
         void GetFiles(string Type)
         {
             string path = ModuleDefManager.GetSourcePath() + "\\" + SourceFileSearchDir;

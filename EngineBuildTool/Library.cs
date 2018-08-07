@@ -42,6 +42,7 @@ namespace EngineBuildTool
             Output = null;
             return false;
         }
+
         static string BCToString(LibBuildConfig config)
         {
             switch (config)
@@ -55,6 +56,7 @@ namespace EngineBuildTool
             }
             return "-1";
         }
+
         void AddModulePaths(List<string> paths, LibBuildConfig buildconfig)
         {
             foreach (string s in paths)

@@ -165,13 +165,16 @@ namespace EngineBuildTool
             Console.WriteLine("Running CMake");
             gen.GenerateList(ModuleObjects, CoreModule);
             gen.RunCmake();
+            FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(),GetIntermediateDir()+ "\\Engine.sln");
             LogStage("Complete");
         }
 
         void PreProcessModules()
         {
+            CoreModule.PostInit();
             foreach (ModuleDef def in ModuleObjects)
             {
+                def.PostInit();
                 if (def.ModuleOuputType == ModuleDef.ModuleType.LIB)
                 {
                     CoreModule.ModuleDepends.Add(def.ModuleName);

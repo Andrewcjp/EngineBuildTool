@@ -1,9 +1,11 @@
-﻿using System;
+﻿using IWshRuntimeLibrary;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 
 namespace EngineBuildTool
 {
@@ -25,6 +27,15 @@ namespace EngineBuildTool
                 files[i] = CmakeGenerator.SanitizePath(files[i]);
             }
             return files;
+        }
+
+        public static void CreateShortcut(string shortcutName, string shortcutPath, string targetFileLocation)
+        {
+            string shortcutLocation = Path.Combine(shortcutPath, shortcutName + ".lnk");
+            WshShell shell = new WshShell();
+            IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(shortcutLocation);
+            shortcut.TargetPath = targetFileLocation;                 // The path of the file that will launch when the shortcut is run
+            shortcut.Save();                                          // Save the shortcut
         }
     }
 }

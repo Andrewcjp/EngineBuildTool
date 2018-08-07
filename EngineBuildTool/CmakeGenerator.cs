@@ -16,14 +16,14 @@ namespace EngineBuildTool
         }
         void GenHeader()
         {
-            OutputData += "cmake_minimum_required (VERSION 3.10)\n";
+            OutputData += "cmake_minimum_required (VERSION 3.0)\n";
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
             OutputData += "Project(" + "Engine" + ")\n";
             string OutputDir = SanitizePath(ModuleDefManager.GetBinPath());
             OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY " + OutputDir + ")\n";
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  " + OutputDir + ")\n";
             OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  " + OutputDir + ")\n";
-            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS\")\n";
+            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /NODEFAULTLIB:MSVCRT\")\n";
             //OutputData += "set(CMAKE_CONFIGURATION_TYPES \"Debug; Release; \" CACHE STRING \"\" FORCE)\n";
             //OutputData += "set(CMAKE_C_FLAGS_Release /o2)\n";
         }
@@ -54,6 +54,17 @@ namespace EngineBuildTool
             }
             return result;
         }
+        static string ListStringDefines(List<string> array)
+        {
+            // Use string Join to concatenate the string elements.
+            string result = "";
+            foreach (string s in array)
+            {
+                result += "-D" + s + ";  ";
+            }
+            return result;
+        }
+
         static string ArrayStringQuotes(LibRef[] array)
         {
             // Use string Join to concatenate the string elements.
@@ -68,6 +79,7 @@ namespace EngineBuildTool
             }
             return result;
         }
+
         public void ProcessModule(ModuleDef Module)
         {
             OutputData += "#-------------Module Start " + Module.ModuleName + "----------------\n";
@@ -121,6 +133,8 @@ namespace EngineBuildTool
             }
             OutputData += "add_definitions(/MP)\n";
             OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\n";
+            OutputData += "target_compile_definitions(" + Module.ModuleName + " PRIVATE " + ListStringDefines(Module.PreProcessorDefines) + ")\n";
+            
         }
 
         void WriteToFile(string dir)
