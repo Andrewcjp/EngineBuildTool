@@ -14,18 +14,66 @@ namespace EngineBuildTool
         {
             return input.Replace("\\", "/"); ;
         }
+        string GetConfigNames(List<BuildConfig> Configs, bool DebugOnly = false)
+        {
+            string output = "";
+            foreach (BuildConfig bc in Configs)
+            {
+                if (DebugOnly && bc.CurrentType != BuildConfiguration.BuildType.Debug)
+                {
+                    continue;
+                }
+                output += " " + bc.Name;
+            }
+            return output;
+        }
+        string GetFlagForConfig(BuildConfig bc, string flag)
+        {
+            string output = "";
+            output += "SET(CMAKE_" + flag + "_FLAGS_" + bc.Name.ToUpper() + " ";
+            if (bc.CurrentType == BuildConfiguration.BuildType.Debug)
+            {
+                output += "\"${CMAKE_" + flag + "_FLAGS_DEBUG}";
+            }
+            else if (bc.CurrentType == BuildConfiguration.BuildType.Release)
+            {
+                output += "\"${CMAKE_" + flag + "_FLAGS_RELEASE} ";
+            }
+            foreach (string define in bc.Defines)
+            {
+                output += " /D" + define;
+            }
+            output += "\"";
+            output += ") \n";
+            return output;
+        }
+        string GetConfigationStrings(List<BuildConfig> Configs)
+        {
+            string output = "";
+            foreach (BuildConfig bc in Configs)
+            {
+                output += GetFlagForConfig(bc, "CXX");
+                output += GetFlagForConfig(bc, "EXE_LINKER");
+                output += GetFlagForConfig(bc, "MODULE_LINKER");
+            }
+
+            output += "set_property(GLOBAL PROPERTY DEBUG_CONFIGURATIONS " + GetConfigNames(Configs, true) + ")\n";
+            return output;
+        }
         void GenHeader()
         {
-            OutputData += "cmake_minimum_required (VERSION 3.0)\n";
+            OutputData += "cmake_minimum_required (VERSION 3.12.1)\n";
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
             OutputData += "Project(" + "Engine" + ")\n";
             string OutputDir = SanitizePath(ModuleDefManager.GetBinPath());
             OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY " + OutputDir + ")\n";
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  " + OutputDir + ")\n";
-            OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  " + OutputDir + ")\n";
-            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /NODEFAULTLIB:MSVCRT\")\n";
-            //OutputData += "set(CMAKE_CONFIGURATION_TYPES \"Debug; Release; \" CACHE STRING \"\" FORCE)\n";
-            //OutputData += "set(CMAKE_C_FLAGS_Release /o2)\n";
+            OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  " + OutputDir + ")\n";///NODEFAULTLIB:MSVCRT
+            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS \")\n";
+            OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(BuildConfiguration.GetDefaultConfigs()) + ")\n";
+            OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
+            OutputData += GetConfigationStrings(BuildConfiguration.GetDefaultConfigs());
+
         }
         public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule)
         {
@@ -86,15 +134,15 @@ namespace EngineBuildTool
             Module.GatherSourceFiles();
             Module.GatherIncludes();
             string AllSourceFiles = ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
-            if (Module.ModuleOuputType == ModuleDef.ModuleType.DLL)
+            if (Module.ModuleOutputType == ModuleDef.ModuleType.DLL)
             {
                 OutputData += "add_library( " + Module.ModuleName + " MODULE " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
             }
-            else if (Module.ModuleOuputType == ModuleDef.ModuleType.LIB)
+            else if (Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
             {
                 OutputData += "add_library( " + Module.ModuleName + " STATIC " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
             }
-            else if (Module.ModuleOuputType == ModuleDef.ModuleType.EXE)
+            else if (Module.ModuleOutputType == ModuleDef.ModuleType.EXE)
             {
                 OutputData += "add_executable( " + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
                 OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES ENABLE_EXPORTS On)\n";
@@ -134,7 +182,17 @@ namespace EngineBuildTool
             OutputData += "add_definitions(/MP)\n";
             OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\n";
             OutputData += "target_compile_definitions(" + Module.ModuleName + " PRIVATE " + ListStringDefines(Module.PreProcessorDefines) + ")\n";
-            
+            ///WHOLEARCHIVE
+            if (Module.ModuleDepends.Count > 0 && Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
+            {
+                string WholeDataString = "";
+                foreach (string s in Module.ModuleDepends)
+                {
+                    WholeDataString += "/WHOLEARCHIVE:" + s + " ";
+                }
+                OutputData += "SET_TARGET_PROPERTIES(" + Module.ModuleName + " PROPERTIES LINK_FLAGS_DEBUG " + WholeDataString + " )\n";
+            }
+            OutputData += "add_dependencies(" + Module.ModuleName + " Core )\n";
         }
 
         void WriteToFile(string dir)

@@ -12,7 +12,7 @@ namespace EngineBuildTool
     {
         public string ModuleName = "";
         public enum ModuleType { EXE, DLL, LIB };
-        public ModuleType ModuleOuputType = ModuleType.DLL;
+        public ModuleType ModuleOutputType = ModuleType.DLL;
         public List<string> ModuleDepends = new List<string>();
         public string SolutionFolderPath = "";
         public string PCH = "";
@@ -24,13 +24,18 @@ namespace EngineBuildTool
         //Generated
         public List<string> ModuleSourceFiles = new List<string>();
         public List<LibRef> ModuleLibs = new List<LibRef>();
-
+        public List<string> DelayedLoadDlls = new List<string>();
         public List<string> PreProcessorDefines = new List<string>();
+        public List<string> StaticModuleDepends = new List<string>();
         public ModuleDef()
         { }
         public void PostInit()
         {
             PreProcessorDefines.Add(ModuleName.ToUpper() + "_EXPORT");
+            if(ModuleOutputType == ModuleType.LIB)
+            {
+                PreProcessorDefines.Add("STATIC_MODULE");
+            }
         }
         public void GetIncludeDirs(ref List<string> List)
         {

@@ -175,7 +175,7 @@ namespace EngineBuildTool
             foreach (ModuleDef def in ModuleObjects)
             {
                 def.PostInit();
-                if (def.ModuleOuputType == ModuleDef.ModuleType.LIB)
+                if (def.ModuleOutputType == ModuleDef.ModuleType.LIB)
                 {
                     CoreModule.ModuleDepends.Add(def.ModuleName);
                 }
