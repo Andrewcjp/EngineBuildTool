@@ -35,9 +35,13 @@ namespace EngineBuildTool
         {
             return Directory.GetCurrentDirectory() + "\\Binaries";
         }
-        public static string GetLibPath()
+        public static string GetStaticLibPath()
         {
-            return Directory.GetCurrentDirectory() + "\\lib";
+            return Directory.GetCurrentDirectory() + "\\lib\\Static";
+        }
+        public static string GetDynamicLibPath()
+        {
+            return Directory.GetCurrentDirectory() + "\\lib\\Dynamic";
         }
         public static string GetIncludePath()
         {
@@ -149,13 +153,15 @@ namespace EngineBuildTool
             }
         }
         ModuleDef CoreModule = null;
+        List<BuildConfig> CurrentConfigs = new List<BuildConfig>();
         public void Run()
         {
             LogStage("Generate Stage");
+            CurrentConfigs = BuildConfiguration.GetDefaultConfigs();
             Directory.CreateDirectory(GetIntermediateDir());
             GatherModuleFiles();
             CmakeGenerator gen = new CmakeGenerator();
-            //core module Is Special
+            //core module Is Special!
             CoreModule = TargetRulesObject.GetCoreModule();
             Projectdata.LibSearchPaths.AddRange(TargetRulesObject.LibSearchPaths);
             PreProcessModules();
@@ -163,12 +169,34 @@ namespace EngineBuildTool
             ProcessModules();
 
             Console.WriteLine("Running CMake");
-            gen.GenerateList(ModuleObjects, CoreModule);
+            gen.GenerateList(ModuleObjects, CoreModule, CurrentConfigs);
             gen.RunCmake();
-            FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(),GetIntermediateDir()+ "\\Engine.sln");
+            FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(), GetIntermediateDir() + "\\Engine.sln");
+            LogStage("Copy Dlls");
+            CopyDllsToConfig();
             LogStage("Complete");
+
         }
 
+        string GetConfigPathName(BuildConfiguration.BuildType type)
+        {
+            if (type == BuildConfiguration.BuildType.Debug)
+            {
+                return "\\Debug";
+            }
+            else
+            {
+                return "\\Release";
+            }
+        }
+        void CopyDllsToConfig()
+        {
+            string rootpath = GetDynamicLibPath();
+            foreach (BuildConfig bc in CurrentConfigs)
+            {
+                FileUtils.CopyAllFromPath(rootpath + GetConfigPathName(bc.CurrentType), "*.*", GetBinPath() + "\\" + bc.Name);
+            }
+        }
         void PreProcessModules()
         {
             CoreModule.PostInit();
@@ -192,7 +220,7 @@ namespace EngineBuildTool
             {
                 Projectdata.AddLibsForModule(def);
             }
-            Projectdata.AddLibsForModule(CoreModule,true);
+            Projectdata.AddLibsForModule(CoreModule, true);
         }
 
         static Assembly CompileAssembly(string OutputAssemblyPath, List<string> SourceFileNames, List<string> ReferencedAssembies = null, List<string> PreprocessorDefines = null, bool TreatWarningsAsErrors = false)

@@ -37,7 +37,7 @@ namespace EngineBuildTool
             }
             else if (bc.CurrentType == BuildConfiguration.BuildType.Release)
             {
-                output += "\"${CMAKE_" + flag + "_FLAGS_RELEASE} ";
+                output += "\"${CMAKE_" + flag + "_FLAGS_RELWITHDEBINFO}";
             }
             foreach (string define in bc.Defines)
             {
@@ -60,7 +60,7 @@ namespace EngineBuildTool
             output += "set_property(GLOBAL PROPERTY DEBUG_CONFIGURATIONS " + GetConfigNames(Configs, true) + ")\n";
             return output;
         }
-        void GenHeader()
+        void GenHeader(List<BuildConfig> buildConfigs)
         {
             OutputData += "cmake_minimum_required (VERSION 3.12.1)\n";
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
@@ -70,14 +70,14 @@ namespace EngineBuildTool
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  " + OutputDir + ")\n";
             OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  " + OutputDir + ")\n";///NODEFAULTLIB:MSVCRT
             OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS \")\n";
-            OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(BuildConfiguration.GetDefaultConfigs()) + ")\n";
+            OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(buildConfigs) + ")\n";
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
-            OutputData += GetConfigationStrings(BuildConfiguration.GetDefaultConfigs());
-
+            OutputData += GetConfigationStrings(buildConfigs);
         }
-        public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule)
+
+        public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule,List<BuildConfig> buildConfigs)
         {
-            GenHeader();
+            GenHeader(buildConfigs);
             ProcessModule(CoreModule);
             OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + CoreModule.ModuleName + ")\n";
             foreach (ModuleDef M in Modules)

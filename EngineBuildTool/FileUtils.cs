@@ -28,7 +28,32 @@ namespace EngineBuildTool
             }
             return files;
         }
-
+        public static void CopyAllFromPath(string SrcDir, string type, string DestDir)
+        {
+            int FileCopyCount = 0;
+            try
+            {
+                List<string> files = new List<string>(Directory.GetFiles(SrcDir, type, SearchOption.AllDirectories));
+                for (int i = files.Count - 1; i >= 0; i--)
+                {
+                    string DestPath = files[i].Replace(SrcDir, DestDir);
+                    FileInfo SrcFile = new FileInfo(SrcDir);
+                    FileInfo Newfile = new FileInfo(DestPath);
+                    Directory.CreateDirectory(Newfile.DirectoryName);
+                    try
+                    {
+                        System.IO.File.Copy(files[i], DestPath, true);
+                        FileCopyCount++;
+                    }
+                    catch { }
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Failed to find Folder: " + SrcDir);
+            }
+            Console.WriteLine("Copied " + FileCopyCount + " files");
+        }
         public static void CreateShortcut(string shortcutName, string shortcutPath, string targetFileLocation)
         {
             string shortcutLocation = Path.Combine(shortcutPath, shortcutName + ".lnk");

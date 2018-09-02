@@ -24,7 +24,7 @@ namespace EngineBuildTool
         {
             foreach (LibSearchPath path in LibSearchPaths)
             {
-                List<string> files = FileUtils.GetFilePaths(ModuleDefManager.GetLibPath() + path.Path, "*.lib", true, SearchOption.TopDirectoryOnly);
+                List<string> files = FileUtils.GetFilePaths(ModuleDefManager.GetStaticLibPath() + path.Path, "*.lib", true, SearchOption.TopDirectoryOnly);
                 AddModulePaths(files, path.LibBuildConfig);
             }
         }
