@@ -23,6 +23,8 @@ namespace EngineBuildTool
             Configs.Add(new BuildConfig("Release", BuildType.Release));
             Configs.Add(new BuildConfig("DebugPackage", BuildType.Debug, new string[] { "BUILD_GAME" }));
             Configs.Add(new BuildConfig("ReleasePackage", BuildType.Release, new string[] { "BUILD_GAME" }));
+            Configs.Add(new BuildConfig("ShippingDebugPackage", BuildType.Debug, new string[] { "BUILD_GAME", "BUILD_SHIP" }));
+            Configs.Add(new BuildConfig("ShippingReleasePackage", BuildType.Release, new string[] { "BUILD_GAME", "BUILD_SHIP" }));
             return Configs;
         }
     }
