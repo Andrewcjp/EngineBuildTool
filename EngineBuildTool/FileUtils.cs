@@ -5,8 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
-
+using Microsoft.VisualStudio.Setup.Configuration;
 namespace EngineBuildTool
 {
     class FileUtils
@@ -61,6 +60,44 @@ namespace EngineBuildTool
             IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(shortcutLocation);
             shortcut.TargetPath = targetFileLocation;                 // The path of the file that will launch when the shortcut is run
             shortcut.Save();                                          // Save the shortcut
+        }
+        public static bool FindVSVersion()
+        {
+            try
+            {
+                SetupConfiguration Setup = new SetupConfiguration();
+                IEnumSetupInstances Enumerator = Setup.EnumAllInstances();
+
+                ISetupInstance[] Instances = new ISetupInstance[1];
+                for (; ; )
+                {
+                    int NumFetched;
+                    Enumerator.Next(1, Instances, out NumFetched);
+
+                    if (NumFetched == 0)
+                    {
+                        break;
+                    }
+
+                    ISetupInstance2 Instance = (ISetupInstance2)Instances[0];
+                    if ((Instance.GetState() & InstanceState.Local) == InstanceState.Local)
+                    {
+                        string VersionString = Instance.GetDisplayName();
+                        if (VersionString.Contains("17"))
+                        {
+                            return true;
+                        }
+                        else if (VersionString.Contains("15"))
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return true;
         }
     }
 }

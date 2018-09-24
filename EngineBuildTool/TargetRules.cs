@@ -17,8 +17,10 @@ namespace EngineBuildTool
         public string Path = "";
         public LibBuildConfig LibBuildConfig = LibBuildConfig.General;
     }
+    
     public class TargetRules
     {
+        public List<string> ModuleExcludeList = new List<string>();
         public TargetRules()
         {
 

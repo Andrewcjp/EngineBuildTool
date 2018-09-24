@@ -75,7 +75,7 @@ namespace EngineBuildTool
             OutputData += GetConfigationStrings(buildConfigs);
         }
 
-        public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule,List<BuildConfig> buildConfigs)
+        public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
         {
             GenHeader(buildConfigs);
             ProcessModule(CoreModule);
@@ -180,7 +180,7 @@ namespace EngineBuildTool
                 OutputData += "SET_SOURCE_FILES_PROPERTIES(\"Core/" + Module.PCH + ".cpp\" COMPILE_FLAGS \"/Yc" + Module.PCH + ".h\" )\n";
             }
             OutputData += "add_definitions(/MP)\n";
-            OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\n";
+            OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\nadd_definitions(/sdl)\n";
             OutputData += "target_compile_definitions(" + Module.ModuleName + " PRIVATE " + ListStringDefines(Module.PreProcessorDefines) + ")\n";
             ///WHOLEARCHIVE
             if (Module.ModuleDepends.Count > 0 && Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
@@ -199,10 +199,12 @@ namespace EngineBuildTool
         {
             File.WriteAllText(dir + "/CmakeLists.txt", OutputData);
         }
-
+        public static bool UseVs17 = true;
         public void RunCmake()
         {
-            string CmakeArgs = "-G \"Visual Studio 15 2017 Win64\"  \"" + ModuleDefManager.GetSourcePath() + "\"";
+            const string Vs17Args = "\"Visual Studio 15 2017 Win64\"";
+            const string Vs15Args = "\"Visual Studio 14 2015 Win64\"";      
+            string CmakeArgs = "-G  " + (UseVs17 ? Vs17Args : Vs15Args) + " \"" + ModuleDefManager.GetSourcePath() + "\"";
 
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();

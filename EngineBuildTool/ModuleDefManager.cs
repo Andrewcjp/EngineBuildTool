@@ -12,7 +12,7 @@ namespace EngineBuildTool
     {
         Library Projectdata;
         public string SourceDir = "";
-        public List<string> ModuleExcludeList = new List<string>();
+       
         string BuildAssembly = "BuildCsFiles.dll";
         string BuildCsString = ".Build";
         string TargetCsString = ".Target";
@@ -98,15 +98,8 @@ namespace EngineBuildTool
                 string outi = filename.Replace(BuildCsString, "");
                 ModuleNames.Add(outi);
             }
-            ModuleExcludeList.Add("VulkanRHI");
-            foreach (string s in ModuleExcludeList)
-            {
-                if (ModuleNames.Contains(s))
-                {
-                    ModuleNames.Remove(s);
-                    Console.WriteLine("Excluded Module " + s);
-                }
-            }
+          
+          
 
 
             string[] Targetfiles = Directory.GetFiles(SourceDir, "*" + TargetCsString + ".cs", SearchOption.AllDirectories);
@@ -115,27 +108,13 @@ namespace EngineBuildTool
             Assembly CompiledAssembly = CompileAssembly("BuildCsFiles.dll", SourceFiles);
             AppDomain.CurrentDomain.Load(CompiledAssembly.GetName());
 
-            Type RulesObjectType;
-            foreach (string module in ModuleNames)
-            {
-                RulesObjectType = CompiledAssembly.GetType(module + ModuleSufix);
-                if (RulesObjectType != null)
-                {
-                    ModuleDef RulesObject;
-                    RulesObject = (ModuleDef)FormatterServices.GetUninitializedObject(RulesObjectType);
-                    ConstructorInfo Constructor = RulesObjectType.GetConstructor(Type.EmptyTypes);
-                    if (Constructor != null)
-                    {
-                        Constructor.Invoke(RulesObject, new object[] { });
-                        ModuleObjects.Add(RulesObject);
-                    }
-                }
-            }
+
             if (TargetRulesName.Length == 0)
             {
                 TargetRulesName = DefaultTargetRulesName;
             }
-            RulesObjectType = CompiledAssembly.GetType(TargetRulesName);
+
+            Type RulesObjectType = CompiledAssembly.GetType(TargetRulesName);
             if (RulesObjectType == null)
             {
                 Console.WriteLine("Failed to File Target Rules \"" + TargetRulesName + "\" falling back to default");
@@ -149,6 +128,30 @@ namespace EngineBuildTool
                 if (Constructor != null)
                 {
                     Constructor.Invoke(TargetRulesObject, new object[] { });
+                }
+            }
+            foreach (string s in TargetRulesObject.ModuleExcludeList)
+            {
+                if (ModuleNames.Contains(s))
+                {
+                    ModuleNames.Remove(s);
+                    Console.WriteLine("Excluded Module " + s);
+                }
+            }
+            Type ModuleRulesType;
+            foreach (string module in ModuleNames)
+            {
+                ModuleRulesType = CompiledAssembly.GetType(module + ModuleSufix);
+                if (ModuleRulesType != null)
+                {
+                    ModuleDef RulesObject;
+                    RulesObject = (ModuleDef)FormatterServices.GetUninitializedObject(ModuleRulesType);
+                    ConstructorInfo Constructor = ModuleRulesType.GetConstructor(Type.EmptyTypes);
+                    if (Constructor != null)
+                    {
+                        Constructor.Invoke(RulesObject, new object[] { });
+                        ModuleObjects.Add(RulesObject);
+                    }
                 }
             }
         }
