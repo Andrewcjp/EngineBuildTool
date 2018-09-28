@@ -73,6 +73,8 @@ namespace EngineBuildTool
             OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(buildConfigs) + ")\n";
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
             OutputData += GetConfigationStrings(buildConfigs);
+            OutputData += "add_definitions(/MP)\n";
+            OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\nadd_definitions(/sdl)\n";
         }
 
         public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
@@ -171,16 +173,33 @@ namespace EngineBuildTool
                 Dirs.Clear();
             }
             OutputData += "source_group(TREE \"${CMAKE_CURRENT_SOURCE_DIR}\" FILES " + AllSourceFiles + ")\n";
-
+            if (Module.UseCorePCH)
+            {
+                Module.PCH = ModuleDefManager.CoreModule.PCH;
+            }
             if (Module.PCH.Length != 0)
             {
-                OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_FLAGS \"/Yu" + Module.PCH + ".h\" )\n";
-                OutputData += "add_definitions(/FI\"" + Module.PCH + ".h\")\n";
 
-                OutputData += "SET_SOURCE_FILES_PROPERTIES(\"Core/" + Module.PCH + ".cpp\" COMPILE_FLAGS \"/Yc" + Module.PCH + ".h\" )\n";
+                string pchstring = "/FI" + Module.PCH + ".h";
+                string SharedHeaderData = " /Yu" + Module.PCH + ".h ";
+                if (Module.UseCorePCH)
+                {
+                    SharedHeaderData = "";
+                }
+#if false
+                if (Module.UseCorePCH)
+                {
+                    SharedHeaderData = "/Fp" + ModuleDefManager.CoreModule.ModuleName + ".dir" + "/$(Configuration)/" + ModuleDefManager.CoreModule.ModuleName + ".pch";
+                }
+#endif
+                OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_FLAGS \"" + SharedHeaderData + pchstring + "\" )\n";
+                if (!Module.UseCorePCH)
+                {
+                    OutputData += "SET_SOURCE_FILES_PROPERTIES(\"" + Module.SourceFileSearchDir + "/" + Module.PCH + ".cpp\" COMPILE_FLAGS \"/Yc" + Module.PCH + ".h\" )\n";
+                }
+
             }
-            OutputData += "add_definitions(/MP)\n";
-            OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\nadd_definitions(/sdl)\n";
+
             OutputData += "target_compile_definitions(" + Module.ModuleName + " PRIVATE " + ListStringDefines(Module.PreProcessorDefines) + ")\n";
             ///WHOLEARCHIVE
             if (Module.ModuleDepends.Count > 0 && Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
@@ -203,7 +222,7 @@ namespace EngineBuildTool
         public void RunCmake()
         {
             const string Vs17Args = "\"Visual Studio 15 2017 Win64\"";
-            const string Vs15Args = "\"Visual Studio 14 2015 Win64\"";      
+            const string Vs15Args = "\"Visual Studio 14 2015 Win64\"";
             string CmakeArgs = "-G  " + (UseVs17 ? Vs17Args : Vs15Args) + " \"" + ModuleDefManager.GetSourcePath() + "\"";
 
             System.Diagnostics.Process process = new System.Diagnostics.Process();

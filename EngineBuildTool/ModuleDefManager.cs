@@ -12,7 +12,7 @@ namespace EngineBuildTool
     {
         Library Projectdata;
         public string SourceDir = "";
-       
+
         string BuildAssembly = "BuildCsFiles.dll";
         string BuildCsString = ".Build";
         string TargetCsString = ".Target";
@@ -98,8 +98,8 @@ namespace EngineBuildTool
                 string outi = filename.Replace(BuildCsString, "");
                 ModuleNames.Add(outi);
             }
-          
-          
+
+
 
 
             string[] Targetfiles = Directory.GetFiles(SourceDir, "*" + TargetCsString + ".cs", SearchOption.AllDirectories);
@@ -155,7 +155,7 @@ namespace EngineBuildTool
                 }
             }
         }
-        ModuleDef CoreModule = null;
+        public static ModuleDef CoreModule = null;
         List<BuildConfig> CurrentConfigs = new List<BuildConfig>();
         public void Run()
         {
@@ -176,12 +176,12 @@ namespace EngineBuildTool
             gen.RunCmake();
             FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(), GetIntermediateDir() + "\\Engine.sln");
             LogStage("Copy Dlls");
-            CopyDllsToConfig();
+            Projectdata.CopyDllsToConfig(CurrentConfigs);
             LogStage("Complete");
 
         }
 
-        string GetConfigPathName(BuildConfiguration.BuildType type)
+        public static string GetConfigPathName(BuildConfiguration.BuildType type)
         {
             if (type == BuildConfiguration.BuildType.Debug)
             {
@@ -192,20 +192,13 @@ namespace EngineBuildTool
                 return "\\Release";
             }
         }
-        void CopyDllsToConfig()
-        {
-            string rootpath = GetDynamicLibPath();
-            foreach (BuildConfig bc in CurrentConfigs)
-            {
-                FileUtils.CopyAllFromPath(rootpath + GetConfigPathName(bc.CurrentType), "*.*", GetBinPath() + "\\" + bc.Name);
-            }
-        }
+
         void PreProcessModules()
         {
-            CoreModule.PostInit();
+            CoreModule.PostInit(TargetRulesObject);
             foreach (ModuleDef def in ModuleObjects)
             {
-                def.PostInit();
+                def.PostInit(TargetRulesObject);
                 if (def.ModuleOutputType == ModuleDef.ModuleType.LIB)
                 {
                     CoreModule.ModuleDepends.Add(def.ModuleName);

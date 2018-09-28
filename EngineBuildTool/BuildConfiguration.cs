@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace EngineBuildTool
 {
-    class BuildConfiguration
+    public class BuildConfiguration
     {
         public enum BuildType
         {
@@ -28,7 +28,7 @@ namespace EngineBuildTool
             return Configs;
         }
     }
-    struct BuildConfig
+    public struct BuildConfig
     {
 
         public BuildConfig(string name, BuildConfiguration.BuildType type, string[] inDefines = null)

@@ -27,14 +27,19 @@ namespace EngineBuildTool
         public List<string> DelayedLoadDlls = new List<string>();
         public List<string> PreProcessorDefines = new List<string>();
         public List<string> StaticModuleDepends = new List<string>();
+        public bool UseCorePCH = true;
         public ModuleDef()
         { }
-        public void PostInit()
+        public void PostInit(TargetRules r)
         {
             PreProcessorDefines.Add(ModuleName.ToUpper() + "_EXPORT");
-            if(ModuleOutputType == ModuleType.LIB)
+            if (ModuleOutputType == ModuleType.LIB)
             {
                 PreProcessorDefines.Add("STATIC_MODULE");
+            }
+            foreach (string t in r.GlobalDefines)
+            {
+                PreProcessorDefines.Add(t);
             }
         }
         public void GetIncludeDirs(ref List<string> List)

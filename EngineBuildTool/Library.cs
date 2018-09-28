@@ -24,11 +24,16 @@ namespace EngineBuildTool
         {
             foreach (LibSearchPath path in LibSearchPaths)
             {
+                if (path.IsLibaryDll)
+                {
+                    continue;
+                }
                 List<string> files = FileUtils.GetFilePaths(ModuleDefManager.GetStaticLibPath() + path.Path, "*.lib", true, SearchOption.TopDirectoryOnly);
                 AddModulePaths(files, path.LibBuildConfig);
             }
         }
         List<LibRef> FoundLibs = new List<LibRef>();
+        List<string> BinaryDirectories = new List<string>();
         public bool GetLib(string name, out LibRef Output)
         {
             foreach (LibRef r in FoundLibs)
@@ -42,7 +47,28 @@ namespace EngineBuildTool
             Output = null;
             return false;
         }
+        public void CopyDllsToConfig(List<BuildConfig> configs)
+        {
+            string rootpath = ModuleDefManager.GetDynamicLibPath();
+            //foreach (BuildConfig bc in configs)
+            //{
+            ////    FileUtils.CopyAllFromPath(rootpath + ModuleDefManager.GetConfigPathName(bc.CurrentType), "*.*", ModuleDefManager.GetBinPath() + "\\" + bc.Name);
+            //}
+            foreach (BuildConfig bc in configs)
+            {
+                foreach (LibSearchPath path in LibSearchPaths)
+                {
+                    //  if(path.IsValidForBuild(bc.CurrentType))
+                    if (path.IsLibaryDll)
+                    {
+                        FileUtils.CopyAllFromPath(rootpath + path.Path + ModuleDefManager.GetConfigPathName(bc.CurrentType), "*.*", ModuleDefManager.GetBinPath() + "\\" + bc.Name);
+                    }
+                }
+                //    FileUtils.CopyAllFromPath(rootpath + ModuleDefManager.GetConfigPathName(bc.CurrentType), "*.*", ModuleDefManager.GetBinPath() + "\\" + bc.Name);
+            }
 
+
+        }
         static string BCToString(LibBuildConfig config)
         {
             switch (config)
