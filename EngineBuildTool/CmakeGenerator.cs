@@ -55,6 +55,7 @@ namespace EngineBuildTool
                 output += GetFlagForConfig(bc, "CXX");
                 output += GetFlagForConfig(bc, "EXE_LINKER");
                 output += GetFlagForConfig(bc, "MODULE_LINKER");
+                output += GetFlagForConfig(bc, "SHARED_LINKER");
             }
 
             output += "set_property(GLOBAL PROPERTY DEBUG_CONFIGURATIONS " + GetConfigNames(Configs, true) + ")\n";
@@ -132,13 +133,21 @@ namespace EngineBuildTool
 
         public void ProcessModule(ModuleDef Module)
         {
+            if (Module.Processed)
+            {
+                return;
+            }
             OutputData += "#-------------Module Start " + Module.ModuleName + "----------------\n";
             Module.GatherSourceFiles();
             Module.GatherIncludes();
             string AllSourceFiles = ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
-            if (Module.ModuleOutputType == ModuleDef.ModuleType.DLL)
+            if (Module.ModuleOutputType == ModuleDef.ModuleType.ModuleDLL)
             {
                 OutputData += "add_library( " + Module.ModuleName + " MODULE " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
+            }
+            else if (Module.ModuleOutputType == ModuleDef.ModuleType.DLL)
+            {
+                OutputData += "add_library( " + Module.ModuleName + " SHARED " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
             }
             else if (Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
             {
@@ -179,7 +188,6 @@ namespace EngineBuildTool
             }
             if (Module.PCH.Length != 0)
             {
-
                 string pchstring = "/FI" + Module.PCH + ".h";
                 string SharedHeaderData = " /Yu" + Module.PCH + ".h ";
                 if (Module.UseCorePCH)
@@ -211,7 +219,11 @@ namespace EngineBuildTool
                 }
                 OutputData += "SET_TARGET_PROPERTIES(" + Module.ModuleName + " PROPERTIES LINK_FLAGS_DEBUG " + WholeDataString + " )\n";
             }
-            OutputData += "add_dependencies(" + Module.ModuleName + " Core )\n";
+            if (Module.NeedsCore && Module != ModuleDefManager.CoreModule)
+            {
+                OutputData += "add_dependencies(" + Module.ModuleName + " Core )\n";
+            }
+            Module.Processed = true;
         }
 
         void WriteToFile(string dir)

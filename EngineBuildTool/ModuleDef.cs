@@ -11,8 +11,8 @@ namespace EngineBuildTool
     public class ModuleDef
     {
         public string ModuleName = "";
-        public enum ModuleType { EXE, DLL, LIB };
-        public ModuleType ModuleOutputType = ModuleType.DLL;
+        public enum ModuleType { EXE, ModuleDLL, DLL, LIB };
+        public ModuleType ModuleOutputType = ModuleType.ModuleDLL;
         public List<string> ModuleDepends = new List<string>();
         public string SolutionFolderPath = "";
         public string PCH = "";
@@ -28,6 +28,10 @@ namespace EngineBuildTool
         public List<string> PreProcessorDefines = new List<string>();
         public List<string> StaticModuleDepends = new List<string>();
         public bool UseCorePCH = true;
+        public bool NeedsCore = true;
+
+        public bool Processed { get; internal set; }
+
         public ModuleDef()
         { }
         public void PostInit(TargetRules r)

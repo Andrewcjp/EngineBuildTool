@@ -203,6 +203,10 @@ namespace EngineBuildTool
                 {
                     CoreModule.ModuleDepends.Add(def.ModuleName);
                 }
+                if (def.NeedsCore)
+                {
+                    def.ModuleDepends.Add(CoreModule.ModuleName);
+                }
                 if (def.AdditonalLibSearchPaths.Count != 0)
                 {
                     Projectdata.LibSearchPaths.AddRange(def.AdditonalLibSearchPaths);
