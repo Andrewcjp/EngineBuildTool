@@ -70,11 +70,12 @@ namespace EngineBuildTool
             OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY " + OutputDir + ")\n";
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  " + OutputDir + ")\n";
             OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  " + OutputDir + ")\n";///NODEFAULTLIB:MSVCRT
-            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS \")\n";
+            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /DEBUG:FASTLINK \")\n";
             OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(buildConfigs) + ")\n";
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
             OutputData += GetConfigationStrings(buildConfigs);
             OutputData += "add_definitions(/MP)\n";
+            //  OutputData += "add_definitions(/DEBUG:FASTLINK)\n";
             OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\nadd_definitions(/sdl)\n";
         }
 
@@ -231,6 +232,22 @@ namespace EngineBuildTool
             File.WriteAllText(dir + "/CmakeLists.txt", OutputData);
         }
         public static bool UseVs17 = true;
+        string CmakeLocalPath = "";
+        //this allows a cmake install to be placed in a folder called CmakeLocal
+        bool FindLocalCmake()
+        {
+            CmakeLocalPath = ModuleDefManager.GetRootPath() + "\\CmakeLocal\\CMake\\bin";
+            if (!Directory.Exists(CmakeLocalPath))
+            {
+                return false;
+            }
+            CmakeLocalPath += "\\cmake.exe";
+            if (!File.Exists(CmakeLocalPath))
+            {
+                return false;
+            }
+            return true;
+        }
         public void RunCmake()
         {
             const string Vs17Args = "\"Visual Studio 15 2017 Win64\"";
@@ -240,7 +257,14 @@ namespace EngineBuildTool
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-            startInfo.FileName = "cmake";
+            if (FindLocalCmake())
+            {
+                startInfo.FileName = CmakeLocalPath;
+            }
+            else
+            {
+                startInfo.FileName = "cmake";
+            }
             startInfo.Arguments = CmakeArgs;
             startInfo.WorkingDirectory = ModuleDefManager.GetIntermediateDir();
             startInfo.RedirectStandardOutput = true;
