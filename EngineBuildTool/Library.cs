@@ -50,24 +50,16 @@ namespace EngineBuildTool
         public void CopyDllsToConfig(List<BuildConfig> configs)
         {
             string rootpath = ModuleDefManager.GetDynamicLibPath();
-            //foreach (BuildConfig bc in configs)
-            //{
-            ////    FileUtils.CopyAllFromPath(rootpath + ModuleDefManager.GetConfigPathName(bc.CurrentType), "*.*", ModuleDefManager.GetBinPath() + "\\" + bc.Name);
-            //}
             foreach (BuildConfig bc in configs)
             {
                 foreach (LibSearchPath path in LibSearchPaths)
                 {
-                    //  if(path.IsValidForBuild(bc.CurrentType))
                     if (path.IsLibaryDll)
                     {
                         FileUtils.CopyAllFromPath(rootpath + path.Path + ModuleDefManager.GetConfigPathName(bc.CurrentType), "*.*", ModuleDefManager.GetBinPath() + "\\" + bc.Name);
                     }
                 }
-                //    FileUtils.CopyAllFromPath(rootpath + ModuleDefManager.GetConfigPathName(bc.CurrentType), "*.*", ModuleDefManager.GetBinPath() + "\\" + bc.Name);
             }
-
-
         }
         static string BCToString(LibBuildConfig config)
         {

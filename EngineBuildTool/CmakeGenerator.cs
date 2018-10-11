@@ -54,6 +54,7 @@ namespace EngineBuildTool
             {
                 output += GetFlagForConfig(bc, "CXX");
                 output += GetFlagForConfig(bc, "EXE_LINKER");
+                output += GetFlagForConfig(bc, "EXE_LINKER_CONSOLE");
                 output += GetFlagForConfig(bc, "MODULE_LINKER");
                 output += GetFlagForConfig(bc, "SHARED_LINKER");
             }
@@ -71,6 +72,7 @@ namespace EngineBuildTool
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  " + OutputDir + ")\n";
             OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  " + OutputDir + ")\n";///NODEFAULTLIB:MSVCRT
             OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /DEBUG:FASTLINK \")\n";
+            OutputData += "set(CMAKE_EXE_LINKER_CONSOLE_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE /DEBUG:FASTLINK \")\n";
             OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(buildConfigs) + ")\n";
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
             OutputData += GetConfigationStrings(buildConfigs);
@@ -158,6 +160,16 @@ namespace EngineBuildTool
             {
                 OutputData += "add_executable( " + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
                 OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES ENABLE_EXPORTS On)\n";
+            }
+            if (Module.UseConsoleSubSystem)
+            {
+                OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES LINK_FLAGS ${CMAKE_EXE_LINKER_CONSOLE_FLAGS})\n";
+
+                foreach (BuildConfig bc in ModuleDefManager.CurrentConfigs)
+                {
+                    string OutputDir = SanitizePath(ModuleDefManager.GetBinPath() + "\\Tools\\" + bc.Name + "\\");
+                    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES RUNTIME_OUTPUT_DIRECTORY_" + bc.Name.ToUpper() + " " + OutputDir + ")\n";
+                }
             }
             if (Module.SolutionFolderPath.Length == 0)
             {

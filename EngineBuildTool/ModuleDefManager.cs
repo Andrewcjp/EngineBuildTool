@@ -80,6 +80,10 @@ namespace EngineBuildTool
             {
                 Directory.Delete(GetIntermediateDir(), true);
             }
+            if (Directory.Exists(GetBinPath()))
+            {
+                Directory.Delete(GetBinPath(), true);
+            }
             if (File.Exists(BuildAssembly))
             {
                 File.Delete(BuildAssembly);
@@ -156,7 +160,8 @@ namespace EngineBuildTool
             }
         }
         public static ModuleDef CoreModule = null;
-        List<BuildConfig> CurrentConfigs = new List<BuildConfig>();
+        public static List<BuildConfig> CurrentConfigs = new List<BuildConfig>();
+
         public void Run()
         {
             LogStage("Generate Stage");

@@ -20,7 +20,7 @@ namespace EngineBuildTool
         public List<LibSearchPath> AdditonalLibSearchPaths = new List<LibSearchPath>();
         public List<string> LibNames = new List<string>();
         public List<string> IncludeDirectories = new List<string>();
-
+        public bool UseConsoleSubSystem = false;
         //Generated
         public List<string> ModuleSourceFiles = new List<string>();
         public List<LibRef> ModuleLibs = new List<LibRef>();
@@ -62,6 +62,8 @@ namespace EngineBuildTool
                 return;
             }
             GetFiles("*.h");
+            GetFiles("*.hpp");
+            GetFiles("*.c");
             GetFiles("*.cpp");
         }
 
