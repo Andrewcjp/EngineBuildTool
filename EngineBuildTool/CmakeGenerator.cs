@@ -9,6 +9,7 @@ namespace EngineBuildTool
 {
     class CmakeGenerator
     {
+        const bool EnableFastLink = true;
         string OutputData = "";
         public static string SanitizePath(string input)
         {
@@ -68,11 +69,16 @@ namespace EngineBuildTool
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
             OutputData += "Project(" + "Engine" + ")\n";
             string OutputDir = SanitizePath(ModuleDefManager.GetBinPath());
-            OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY " + OutputDir + ")\n";
-            OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  " + OutputDir + ")\n";
-            OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  " + OutputDir + ")\n";///NODEFAULTLIB:MSVCRT
-            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /DEBUG:FASTLINK \")\n";
-            OutputData += "set(CMAKE_EXE_LINKER_CONSOLE_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE /DEBUG:FASTLINK \")\n";
+            OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"" + OutputDir + "\")\n";
+            OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";
+            OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";///NODEFAULTLIB:MSVCRT
+            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS \")\n";
+            OutputData += "set(CMAKE_EXE_LINKER_CONSOLE_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE  \")\n";
+            if (EnableFastLink)
+            {
+                OutputData += "set(CMAKE_EXE_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
+                OutputData += "set(CMAKE_MODULE_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
+            }
             OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(buildConfigs) + ")\n";
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
             OutputData += GetConfigationStrings(buildConfigs);
