@@ -83,7 +83,6 @@ namespace EngineBuildTool
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
             OutputData += GetConfigationStrings(buildConfigs);
             OutputData += "add_definitions(/MP)\n";
-            //  OutputData += "add_definitions(/DEBUG:FASTLINK)\n";
             OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\nadd_definitions(/sdl)\n";
         }
 

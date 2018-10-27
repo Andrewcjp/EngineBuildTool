@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Setup.Configuration;
+using System.Runtime.InteropServices;
+
 namespace EngineBuildTool
 {
     class FileUtils
@@ -98,6 +100,40 @@ namespace EngineBuildTool
             {
             }
             return true;
+        }
+        [DllImport("kernel32.dll")]
+        static extern bool CreateSymbolicLink(
+        string lpSymlinkFileName, string lpTargetFileName, SymbolicLink dwFlags);
+
+        enum SymbolicLink
+        {
+            File = 0x0,
+            Directory = 0x1,
+            dev = 0x1 | 0x2
+        }
+        public static void CreateSymbolicLink(string LinkPath, string TargetPath,bool SilentExistError = false)
+        {
+            CreateSymbolicLink(TargetPath, LinkPath, SymbolicLink.dev);
+            int returncode = Marshal.GetLastWin32Error();
+            if (returncode == 0)
+            {
+                returncode = Marshal.GetLastWin32Error();
+            }
+            if (returncode == 1314)
+            {
+                Console.WriteLine("Error: Failed to create SymLink with error ERROR_PRIVILEGE_NOT_HELD");
+            }
+            else if (returncode == 183)
+            {
+                if (!SilentExistError)
+                {
+                    Console.WriteLine("Error: Failed to create SymLink with error ERROR_ALREADY_EXISTS");
+                }
+            }
+            else if (returncode != 0)
+            {
+                Console.WriteLine("Error: Failed to create SymLink with error code:" + returncode);
+            }
         }
     }
 }

@@ -179,13 +179,30 @@ namespace EngineBuildTool
             Console.WriteLine("Running CMake");
             gen.GenerateList(ModuleObjects, CoreModule, CurrentConfigs);
             gen.RunCmake();
+            LogStage("Copy DLLs");
             FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(), GetIntermediateDir() + "\\Engine.sln");
-            LogStage("Copy Dlls");
             Projectdata.CopyDllsToConfig(CurrentConfigs);
+            LinkDirectiories();
             LogStage("Complete");
 
         }
-
+        void LinkPackageDir(string directoryname, string configname)
+        {
+            string SRC = GetRootPath() + "\\" + directoryname;
+            string Target = GetBinPath() + "\\" + configname + "\\" + directoryname;
+            FileUtils.CreateSymbolicLink(SRC, Target,true);
+        }
+        void LinkDirectiories()
+        {
+            foreach (BuildConfig bc in CurrentConfigs)
+            {
+                if (bc.CurrentPackageType != BuildConfiguration.PackageType.Editor)
+                {
+                    LinkPackageDir("DerivedDataCache", bc.Name);
+                    LinkPackageDir("Content", bc.Name);
+                }
+            }
+        }
         public static string GetConfigPathName(BuildConfiguration.BuildType type)
         {
             if (type == BuildConfiguration.BuildType.Debug)

@@ -14,28 +14,42 @@ namespace EngineBuildTool
             Profile,
             Release,
         };
-
+        public enum PackageType
+        {
+            Editor,
+            Package,
+            ShippingPackage
+        };
 
         public static List<BuildConfig> GetDefaultConfigs()
         {
             List<BuildConfig> Configs = new List<BuildConfig>();
-            Configs.Add(new BuildConfig("Debug", BuildType.Debug));
-            Configs.Add(new BuildConfig("Release", BuildType.Release));
-            Configs.Add(new BuildConfig("DebugPackage", BuildType.Debug, new string[] { "BUILD_GAME" }));
-            Configs.Add(new BuildConfig("ReleasePackage", BuildType.Release, new string[] { "BUILD_GAME" }));
-            Configs.Add(new BuildConfig("ShippingDebugPackage", BuildType.Debug, new string[] { "BUILD_GAME", "BUILD_SHIP" }));
-            Configs.Add(new BuildConfig("ShippingReleasePackage", BuildType.Release, new string[] { "BUILD_GAME", "BUILD_SHIP" }));
+            Configs.Add(new BuildConfig("Debug", BuildType.Debug, PackageType.Editor));
+            Configs.Add(new BuildConfig("Release", BuildType.Release, PackageType.Editor));
+            Configs.Add(new BuildConfig("DebugPackage", BuildType.Debug, PackageType.Package));
+            Configs.Add(new BuildConfig("ReleasePackage", BuildType.Release, PackageType.Package));
+            Configs.Add(new BuildConfig("ShippingDebugPackage", BuildType.Debug, PackageType.ShippingPackage));
+            Configs.Add(new BuildConfig("ShippingReleasePackage", BuildType.Release, PackageType.ShippingPackage));
             return Configs;
         }
     }
     public struct BuildConfig
     {
-
-        public BuildConfig(string name, BuildConfiguration.BuildType type, string[] inDefines = null)
+        public BuildConfig(string name, BuildConfiguration.BuildType type, BuildConfiguration.PackageType packageType, string[] inDefines = null)
         {
             Name = name;
             CurrentType = type;
             Defines = new List<string>();
+            CurrentPackageType = packageType;
+            if (packageType == BuildConfiguration.PackageType.Package)
+            {
+                Defines.Add("BUILD_GAME");
+            }
+            else if (packageType == BuildConfiguration.PackageType.ShippingPackage)
+            {
+                Defines.Add("BUILD_GAME");
+                Defines.Add("BUILD_SHIP");
+            }
             if (inDefines != null)
             {
                 Defines.AddRange(inDefines);
@@ -43,6 +57,7 @@ namespace EngineBuildTool
         }
         public string Name;
         public BuildConfiguration.BuildType CurrentType;
+        public BuildConfiguration.PackageType CurrentPackageType;
         public List<string> Defines;
     }
 }
