@@ -29,7 +29,7 @@ namespace EngineBuildTool
         public List<string> StaticModuleDepends = new List<string>();
         public bool UseCorePCH = true;
         public bool NeedsCore = true;
-
+        public bool UseUnity = false;
         public bool Processed { get; internal set; }
 
         public ModuleDef()

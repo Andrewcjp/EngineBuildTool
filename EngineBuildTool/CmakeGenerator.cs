@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace EngineBuildTool
 {
@@ -96,6 +97,15 @@ namespace EngineBuildTool
                 ProcessModule(M);
             }
             WriteToFile(ModuleDefManager.GetSourcePath());
+
+        }
+        public void RunPostStep(List<ModuleDef> Modules, ModuleDef CoreModule)
+        {
+            EnableUnityBuild(CoreModule);
+            foreach (ModuleDef m in Modules)
+            {
+                EnableUnityBuild(m);
+            }
         }
         static string ConvertStringArrayToStringJoin(string[] array)
         {
@@ -298,6 +308,35 @@ namespace EngineBuildTool
             }
             process.WaitForExit();
             Console.WriteLine("Exitcode: " + process.ExitCode);
+        }
+        void EnableUnityBuild(ModuleDef md)
+        {
+            if (!md.UseUnity)
+            {
+                return;
+            }
+            string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + md.ModuleName + ".vcxproj";
+            XmlDocument doc = new XmlDocument();
+            doc.Load(VxprojPath);
+            XmlNode target = doc.SelectSingleNode("//EnableUnitySupport");
+            if (target == null)
+            {
+                XmlNode newnode = doc.CreateNode(XmlNodeType.Element, "PropertyGroup", doc.DocumentElement.NamespaceURI);
+                doc.DocumentElement.InsertAfter(newnode, doc.DocumentElement.FirstChild);
+                XmlNode a = doc.CreateNode(XmlNodeType.Element, "EnableUnitySupport", doc.DocumentElement.NamespaceURI);
+                a.InnerText = "true";
+                newnode.AppendChild(a);
+                var nsmgr = new XmlNamespaceManager(doc.NameTable);
+                nsmgr.AddNamespace("a", "http://schemas.microsoft.com/developer/msbuild/2003");
+                XmlNodeList complies = doc.SelectNodes("//a:ClCompile", nsmgr);
+                foreach (XmlNode x in complies)
+                {
+                    XmlNode value = doc.CreateNode(XmlNodeType.Element, "IncludeInUnityFile", doc.DocumentElement.NamespaceURI);
+                    value.InnerText = "true";//<IncludeInUnityFile>true</IncludeInUnityFile>
+                    x.AppendChild(value);
+                }
+                doc.Save(VxprojPath);
+            }
         }
     }
 }

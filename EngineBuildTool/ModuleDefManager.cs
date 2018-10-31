@@ -179,6 +179,7 @@ namespace EngineBuildTool
             Console.WriteLine("Running CMake");
             gen.GenerateList(ModuleObjects, CoreModule, CurrentConfigs);
             gen.RunCmake();
+            gen.RunPostStep(ModuleObjects, CoreModule);
             LogStage("Copy DLLs");
             FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(), GetIntermediateDir() + "\\Engine.sln");
             Projectdata.CopyDllsToConfig(CurrentConfigs);
