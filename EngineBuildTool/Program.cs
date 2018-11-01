@@ -14,6 +14,10 @@ namespace EngineBuildTool
     {
         static void Main(string[] args)
         {
+            for (int i = 0; i < args.Length; i++)
+            {
+                args[i] = args[i].ToLower();
+            }
             ModuleDefManager manager = new ModuleDefManager();
             if (args.Length > 0)
             {
@@ -21,25 +25,30 @@ namespace EngineBuildTool
                 {
                     manager.TargetRulesName = args[0];
                 }
-            }
-            if (args.Contains("-VS15"))
-            {
-                CmakeGenerator.UseVs17 = false;
-            }
-            else if (args.Contains("-VS17"))
-            {
-                CmakeGenerator.UseVs17 = true;
-            }
-            else
-            {
-                CmakeGenerator.UseVs17 = FileUtils.FindVSVersion();
+
+                if (args.Contains("-vs15"))
+                {
+                    CmakeGenerator.UseVs17 = false;
+                }
+                else if (args.Contains("-vs17"))
+                {
+                    CmakeGenerator.UseVs17 = true;
+                }
+                else
+                {
+                    CmakeGenerator.UseVs17 = FileUtils.FindVSVersion();
+                }
+                if (args.Contains("-nounity"))
+                {
+                    CmakeGenerator.AllowUnityBuild = false;
+                }
             }
             Console.WriteLine("Using Visual Studio " + (CmakeGenerator.UseVs17 ? "2017" : "2015"));
-            if (args.Contains("-Clean"))
+            if (args.Contains("-clean"))
             {
                 manager.Clean();
             }
-            if (!args.Contains("-NoGen"))
+            if (!args.Contains("-nogen"))
             {
                 manager.Run();
             }

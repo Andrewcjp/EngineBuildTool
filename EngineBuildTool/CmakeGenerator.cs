@@ -309,12 +309,14 @@ namespace EngineBuildTool
             process.WaitForExit();
             Console.WriteLine("Exitcode: " + process.ExitCode);
         }
+        public static bool AllowUnityBuild = true;
         void EnableUnityBuild(ModuleDef md)
         {
-            if (!md.UseUnity)
+            if (!md.UseUnity || !AllowUnityBuild)
             {
                 return;
             }
+            Console.WriteLine("Experimental VS Unity Build running on module " + md.ModuleName);
             string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + md.ModuleName + ".vcxproj";
             XmlDocument doc = new XmlDocument();
             doc.Load(VxprojPath);
