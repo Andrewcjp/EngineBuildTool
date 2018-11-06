@@ -41,6 +41,14 @@ namespace EngineBuildTool
                     FileInfo SrcFile = new FileInfo(SrcDir);
                     FileInfo Newfile = new FileInfo(DestPath);
                     Directory.CreateDirectory(Newfile.DirectoryName);
+                    if (Newfile.Exists)
+                    {
+                        if(Newfile.LastAccessTime >= SrcFile.LastAccessTime)
+                        {
+                            FileCopyCount++;
+                            continue;
+                        }
+                    }
                     try
                     {
                         System.IO.File.Copy(files[i], DestPath, true);
@@ -123,7 +131,7 @@ namespace EngineBuildTool
             {
                 Console.WriteLine("Error: Failed to create SymLink with error ERROR_PRIVILEGE_NOT_HELD");
             }
-            else if (returncode == 183)
+            else if (returncode == 183 || returncode == 18)//18 == ERROR_NO_MORE_FILES
             {
                 if (!SilentExistError)
                 {

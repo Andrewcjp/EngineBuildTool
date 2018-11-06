@@ -16,6 +16,10 @@ namespace EngineBuildTool
         {
             return input.Replace("\\", "/"); ;
         }
+        public static string SanitizePathToDoubleBack(string input)
+        {
+            return input.Replace("/", "\\");
+        }
         string GetConfigNames(List<BuildConfig> Configs, bool DebugOnly = false)
         {
             string output = "";
@@ -49,6 +53,7 @@ namespace EngineBuildTool
             output += ") \n";
             return output;
         }
+
         string GetConfigationStrings(List<BuildConfig> Configs)
         {
             string output = "";
@@ -63,6 +68,11 @@ namespace EngineBuildTool
 
             output += "set_property(GLOBAL PROPERTY DEBUG_CONFIGURATIONS " + GetConfigNames(Configs, true) + ")\n";
             return output;
+        }
+        string AppendConfigFlags(BuildConfig bc, string flag, string value)
+        {
+            string configflagname = "CMAKE_" + flag + "_FLAGS_" + bc.Name.ToUpper();
+            return "SET(" + configflagname + " \"${" + configflagname + "} " + value + "\")\n";
         }
         void GenHeader(List<BuildConfig> buildConfigs)
         {
@@ -85,6 +95,22 @@ namespace EngineBuildTool
             OutputData += GetConfigationStrings(buildConfigs);
             OutputData += "add_definitions(/MP)\n";
             OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\nadd_definitions(/sdl)\n";
+            foreach (BuildConfig b in buildConfigs)
+            {
+                if (b.CurrentPackageType == BuildConfiguration.PackageType.ShippingPackage && b.CurrentType == BuildConfiguration.BuildType.Release)
+                {
+                    OutputData += AppendConfigFlags(b, "EXE_LINKER", "/LTCG");
+                    OutputData += AppendConfigFlags(b, "MODULE_LINKER", "/LTCG");
+                    OutputData += AppendConfigFlags(b, "CXX", "/Ob2 /Ot /Oi /GL /arch:AVX2");
+                }
+                else if (b.CurrentType == BuildConfiguration.BuildType.Release)
+                {
+                    //OutputData += AppendConfigFlags(b, "EXE_LINKER", "/LTCG");
+                    //OutputData += AppendConfigFlags(b, "MODULE_LINKER", "/LTCG");
+                    OutputData += AppendConfigFlags(b, "CXX", "/Ob2 /Ot /Oi");
+                }
+            }
+
         }
 
         public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
@@ -337,8 +363,56 @@ namespace EngineBuildTool
                     value.InnerText = "true";//<IncludeInUnityFile>true</IncludeInUnityFile>
                     x.AppendChild(value);
                 }
+
+                ProcessExpections(doc, nsmgr, md);
+
                 doc.Save(VxprojPath);
+            }
+        }
+
+        private static void ProcessExpections(XmlDocument doc, XmlNamespaceManager nsmgr, ModuleDef md)
+        {
+            List<string> Excludes = new List<string>();
+            foreach (string path in md.UnityBuildExcludedFolders)
+            {
+                Excludes.AddRange(FileUtils.GetFilePaths(ModuleDefManager.GetSourcePath() + "\\" + md.ModuleName + "\\" + path, "*.cpp", true));
+                Console.WriteLine("Excluded " + path + " from unity build for module " + md.ModuleName);
+            }
+
+            XmlNodeList cl = doc.SelectNodes("//a:ItemGroup", nsmgr);
+            foreach (string s in Excludes)
+            {
+                string parsed = SanitizePathToDoubleBack(s);
+                XmlNodeList cc = doc.SelectNodes("//a:ClCompile[*]", nsmgr);
+                foreach (XmlNode nn in cc)
+                {
+                    if (nn.Attributes.Count > 0)
+                    {
+                        if (nn.Attributes[0].Value == parsed)
+                        {
+                            nn.FirstChild.InnerText = "false";
+                        }
+                    }
+                }
             }
         }
     }
 }
+
+
+
+//<ClCompile Include = "C:\Users\AANdr\Dropbox\Engine\Engine\Repo\GraphicsEngine\Source\Core\Editor\EditorGizmos.cpp" >
+//  < IncludeInUnityFile > true </ IncludeInUnityFile >
+//</ ClCompile >
+
+
+
+//XmlNode b = doc.CreateNode(XmlNodeType.Element, "ClCompile", doc.DocumentElement.NamespaceURI);
+//XmlAttribute a33 = doc.CreateAttribute("Include", "");
+//a33.Value = s;
+//b.Attributes.Append(a33);
+//XmlNode value = doc.CreateNode(XmlNodeType.Element, "IncludeInUnityFile", doc.DocumentElement.NamespaceURI);
+//value.InnerText = "false";//<IncludeInUnityFile>true</IncludeInUnityFile>
+//b.AppendChild(value);
+////  b.Value
+//cl.Item(cl.Count - 2).AppendChild(b);

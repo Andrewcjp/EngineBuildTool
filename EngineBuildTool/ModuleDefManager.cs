@@ -102,10 +102,6 @@ namespace EngineBuildTool
                 string outi = filename.Replace(BuildCsString, "");
                 ModuleNames.Add(outi);
             }
-
-
-
-
             string[] Targetfiles = Directory.GetFiles(SourceDir, "*" + TargetCsString + ".cs", SearchOption.AllDirectories);
             SourceFiles.AddRange(Targetfiles);
 
