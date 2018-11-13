@@ -242,8 +242,9 @@ namespace EngineBuildTool
             }
             if (Module.PCH.Length != 0)
             {
-                string pchstring = "/FI" + Module.PCH + ".h";
-                string SharedHeaderData = " /Yu" + Module.PCH + ".h ";
+                string PCHString = "Source/" + Module.SourceFileSearchDir + "/" + Module.PCH;
+                string pchstring = "/FI" + PCHString + ".h";
+                string SharedHeaderData = " /Yu" + PCHString + ".h ";
                 if (Module.UseCorePCH)
                 {
                     SharedHeaderData = "";
@@ -257,7 +258,7 @@ namespace EngineBuildTool
                 OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_FLAGS \"" + SharedHeaderData + pchstring + "\" )\n";
                 if (!Module.UseCorePCH)
                 {
-                    OutputData += "SET_SOURCE_FILES_PROPERTIES(\"" + Module.SourceFileSearchDir + "/" + Module.PCH + ".cpp\" COMPILE_FLAGS \"/Yc" + Module.PCH + ".h\" )\n";
+                    OutputData += "SET_SOURCE_FILES_PROPERTIES(\"" + Module.SourceFileSearchDir + "/" + Module.PCH + ".cpp\" COMPILE_FLAGS \"/Yc" + PCHString + ".h\" )\n";
                 }
 
             }
