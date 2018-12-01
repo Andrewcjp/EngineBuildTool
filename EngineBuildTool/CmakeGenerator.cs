@@ -212,6 +212,10 @@ namespace EngineBuildTool
                     OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES RUNTIME_OUTPUT_DIRECTORY_" + bc.Name.ToUpper() + " " + OutputDir + ")\n";
                 }
             }
+            if (Module.OutputObjectName.Length > 0)
+            {
+                OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES OUTPUT_NAME \"" + Module.OutputObjectName + "\")\n";
+            }
             if (Module.SolutionFolderPath.Length == 0)
             {
                 Module.SolutionFolderPath = "Engine/Modules";
@@ -339,7 +343,7 @@ namespace EngineBuildTool
         public static bool AllowUnityBuild = true;
         void EnableUnityBuild(ModuleDef md)
         {
-            if (!md.UseUnity || !AllowUnityBuild)
+            if (!md.UseUnity || !AllowUnityBuild || !UseVs17)
             {
                 return;
             }

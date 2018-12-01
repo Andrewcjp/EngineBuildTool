@@ -43,6 +43,10 @@ namespace EngineBuildTool
                     CmakeGenerator.AllowUnityBuild = false;
                 }
             }
+            else
+            {
+                CmakeGenerator.UseVs17 = FileUtils.FindVSVersion();
+            }
             Console.WriteLine("Using Visual Studio " + (CmakeGenerator.UseVs17 ? "2017" : "2015"));
             if (args.Contains("-clean"))
             {

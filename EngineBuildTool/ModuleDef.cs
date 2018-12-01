@@ -32,6 +32,7 @@ namespace EngineBuildTool
         public bool UseUnity = false;
         public bool Processed { get; internal set; }
         public List<string> UnityBuildExcludedFolders = new List<string>();
+        public string OutputObjectName = "";
         public ModuleDef()
         { }
         public void PostInit(TargetRules r)
