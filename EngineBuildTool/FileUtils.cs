@@ -43,7 +43,7 @@ namespace EngineBuildTool
                     Directory.CreateDirectory(Newfile.DirectoryName);
                     if (Newfile.Exists)
                     {
-                        if(Newfile.LastAccessTime >= SrcFile.LastAccessTime)
+                        if (Newfile.LastAccessTime >= SrcFile.LastAccessTime)
                         {
                             FileCopyCount++;
                             continue;
@@ -119,7 +119,7 @@ namespace EngineBuildTool
             Directory = 0x1,
             dev = 0x1 | 0x2
         }
-        public static void CreateSymbolicLink(string LinkPath, string TargetPath,bool SilentExistError = false)
+        public static void CreateSymbolicLink(string LinkPath, string TargetPath, bool SilentExistError = false)
         {
             CreateSymbolicLink(TargetPath, LinkPath, SymbolicLink.dev);
             int returncode = Marshal.GetLastWin32Error();
@@ -143,5 +143,34 @@ namespace EngineBuildTool
                 Console.WriteLine("Error: Failed to create SymLink with error code:" + returncode);
             }
         }
+        public static void DeleteDirectory(string name)
+        {
+            try
+            {
+                if (Directory.Exists(name))
+                {
+                    Directory.Delete(name, true);
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Failed to Delete " + name);
+            }
+        }
+        public static void DeleteFile(string name)
+        {
+            try
+            {
+                if (System.IO.File.Exists(name))
+                {
+                    System.IO.File.Delete(name);
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Failed to Delete " + name);
+            }
+        }
     }
+
 }

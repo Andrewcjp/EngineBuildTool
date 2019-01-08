@@ -202,6 +202,7 @@ namespace EngineBuildTool
                 OutputData += "add_executable( " + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
                 OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES ENABLE_EXPORTS On)\n";
             }
+
             if (Module.UseConsoleSubSystem)
             {
                 OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES LINK_FLAGS ${CMAKE_EXE_LINKER_CONSOLE_FLAGS})\n";
@@ -209,7 +210,7 @@ namespace EngineBuildTool
                 foreach (BuildConfig bc in ModuleDefManager.CurrentConfigs)
                 {
                     string OutputDir = SanitizePath(ModuleDefManager.GetBinPath() + "\\Tools\\" + bc.Name + "\\");
-                    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES RUNTIME_OUTPUT_DIRECTORY_" + bc.Name.ToUpper() + " " + OutputDir + ")\n";
+                    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES RUNTIME_OUTPUT_DIRECTORY_" + bc.Name.ToUpper() + " \"" + OutputDir + "\")\n";
                 }
             }
             if (Module.OutputObjectName.Length > 0)
@@ -226,6 +227,14 @@ namespace EngineBuildTool
             {
                 OutputData += "target_link_libraries(" + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleLibs.ToArray()) + ")\n";
             }
+
+            //if (Module.IsGameModule)
+            //{
+            //    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_OPTIONS  \"${}\")\n";
+            //    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_OPTIONS  \"${CMAKE_EXE_LINKER_FLAGS_DEBUG}\")\n";
+            //    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES CMAKE_MODULE_LINKER_DEVELOPMENT \"${CMAKE_MODULE_LINKER_FLAGS_DEBUG}\")\n";
+            //    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES CMAKE_SHARED_LINKER_FLAGS_DEVELOPMENT \"${CMAKE_SHARED_LINKER_FLAGS_DEBUG}\")\n";
+            //}
 
             if (Module.ModuleDepends.Count != 0)
             {
@@ -349,6 +358,11 @@ namespace EngineBuildTool
             }
             Console.WriteLine("Experimental VS Unity Build running on module " + md.ModuleName);
             string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + md.ModuleName + ".vcxproj";
+            if (!File.Exists(VxprojPath))
+            {
+                Console.WriteLine("Error: No project file!");
+                return;
+            }
             XmlDocument doc = new XmlDocument();
             doc.Load(VxprojPath);
             XmlNode target = doc.SelectSingleNode("//EnableUnitySupport");
@@ -403,21 +417,3 @@ namespace EngineBuildTool
         }
     }
 }
-
-
-
-//<ClCompile Include = "C:\Users\AANdr\Dropbox\Engine\Engine\Repo\GraphicsEngine\Source\Core\Editor\EditorGizmos.cpp" >
-//  < IncludeInUnityFile > true </ IncludeInUnityFile >
-//</ ClCompile >
-
-
-
-//XmlNode b = doc.CreateNode(XmlNodeType.Element, "ClCompile", doc.DocumentElement.NamespaceURI);
-//XmlAttribute a33 = doc.CreateAttribute("Include", "");
-//a33.Value = s;
-//b.Attributes.Append(a33);
-//XmlNode value = doc.CreateNode(XmlNodeType.Element, "IncludeInUnityFile", doc.DocumentElement.NamespaceURI);
-//value.InnerText = "false";//<IncludeInUnityFile>true</IncludeInUnityFile>
-//b.AppendChild(value);
-////  b.Value
-//cl.Item(cl.Count - 2).AppendChild(b);

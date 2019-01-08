@@ -33,6 +33,7 @@ namespace EngineBuildTool
         public bool Processed { get; internal set; }
         public List<string> UnityBuildExcludedFolders = new List<string>();
         public string OutputObjectName = "";
+        public bool IsGameModule = false;
         public ModuleDef()
         { }
         public void PostInit(TargetRules r)

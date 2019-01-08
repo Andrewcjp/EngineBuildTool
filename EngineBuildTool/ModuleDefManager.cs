@@ -73,21 +73,18 @@ namespace EngineBuildTool
             }
             Console.WriteLine(logstring);
         }
+
         public void Clean()
         {
             LogStage("Clean Stage");
-            if (Directory.Exists(GetIntermediateDir()))
-            {
-                Directory.Delete(GetIntermediateDir(), true);
-            }
-            if (Directory.Exists(GetBinPath()))
-            {
-                Directory.Delete(GetBinPath(), true);
-            }
-            if (File.Exists(BuildAssembly))
-            {
-                File.Delete(BuildAssembly);
-            }
+            FileUtils.DeleteDirectory(GetIntermediateDir());
+            FileUtils.DeleteDirectory(GetRootPath() + "\\DerivedDataCache");
+            FileUtils.DeleteDirectory(GetBinPath());
+            FileUtils.DeleteDirectory(GetRootPath() + "\\x64");
+            FileUtils.DeleteDirectory(GetRootPath() + "\\Build");
+            FileUtils.DeleteDirectory(GetRootPath() + "\\Packed");
+            FileUtils.DeleteFile(BuildAssembly);
+            FileUtils.DeleteFile("EngineSolution.sln");
         }
 
         void GatherModuleFiles()
@@ -187,7 +184,7 @@ namespace EngineBuildTool
         {
             string SRC = GetRootPath() + "\\" + directoryname;
             string Target = GetBinPath() + "\\" + configname + "\\" + directoryname;
-            FileUtils.CreateSymbolicLink(SRC, Target,true);
+            FileUtils.CreateSymbolicLink(SRC, Target, true);
         }
         void LinkDirectiories()
         {
