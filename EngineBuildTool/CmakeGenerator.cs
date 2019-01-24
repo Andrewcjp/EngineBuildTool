@@ -74,11 +74,15 @@ namespace EngineBuildTool
             string configflagname = "CMAKE_" + flag + "_FLAGS_" + bc.Name.ToUpper();
             return "SET(" + configflagname + " \"${" + configflagname + "} " + value + "\")\n";
         }
+        const string SDKVersion = "10.0.17763.0";
         void GenHeader(List<BuildConfig> buildConfigs)
         {
             OutputData += "cmake_minimum_required (VERSION 3.12.1)\n";
+            OutputData += "set(CMAKE_SYSTEM_VERSION " + SDKVersion + " CACHE TYPE INTERNAL FORCE)\n";
+            OutputData += "message(\"Detected CMAKE_SYSTEM_VERSION = '${CMAKE_SYSTEM_VERSION}'\")\n";
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
             OutputData += "Project(" + "Engine" + ")\n";
+            OutputData += "set(CMAKE_SYSTEM_VERSION " + SDKVersion + " CACHE TYPE INTERNAL FORCE)\n";
             string OutputDir = SanitizePath(ModuleDefManager.GetBinPath());
             OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"" + OutputDir + "\")\n";
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";
@@ -110,6 +114,7 @@ namespace EngineBuildTool
                     OutputData += AppendConfigFlags(b, "CXX", "/Ob2 /Ot /Oi");
                 }
             }
+            OutputData += "message(\"Detected CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION = '${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}'\")\n";
 
         }
 
