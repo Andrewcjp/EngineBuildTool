@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace EngineBuildTool
 {
-
     public class ModuleDef
     {
         public string ModuleName = "";
@@ -34,6 +33,7 @@ namespace EngineBuildTool
         public List<string> UnityBuildExcludedFolders = new List<string>();
         public string OutputObjectName = "";
         public bool IsGameModule = false;
+        public bool IsCoreModule = false;
         public ModuleDef()
         { }
         public void PostInit(TargetRules r)
@@ -67,11 +67,18 @@ namespace EngineBuildTool
             GetFiles("*.hpp");
             GetFiles("*.c");
             GetFiles("*.cpp");
+            if (IsCoreModule)
+            {
+                GetFiles("*.*", ModuleDefManager.GetRootPath() + "\\Shaders");
+            }
         }
-
         void GetFiles(string Type)
         {
             string path = ModuleDefManager.GetSourcePath() + "\\" + SourceFileSearchDir;
+            GetFiles(Type, path);
+        }
+        void GetFiles(string Type, string path)
+        {
             try
             {
                 string[] files = Directory.GetFiles(path, Type, SearchOption.AllDirectories);

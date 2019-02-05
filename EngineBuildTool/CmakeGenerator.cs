@@ -192,19 +192,19 @@ namespace EngineBuildTool
             string AllSourceFiles = ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
             if (Module.ModuleOutputType == ModuleDef.ModuleType.ModuleDLL)
             {
-                OutputData += "add_library( " + Module.ModuleName + " MODULE " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
+                OutputData += "add_library( " + Module.ModuleName + " MODULE " + AllSourceFiles + ")\n";
             }
             else if (Module.ModuleOutputType == ModuleDef.ModuleType.DLL)
             {
-                OutputData += "add_library( " + Module.ModuleName + " SHARED " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
+                OutputData += "add_library( " + Module.ModuleName + " SHARED " + AllSourceFiles + ")\n";
             }
             else if (Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
             {
-                OutputData += "add_library( " + Module.ModuleName + " STATIC " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
+                OutputData += "add_library( " + Module.ModuleName + " STATIC " + AllSourceFiles + ")\n";
             }
             else if (Module.ModuleOutputType == ModuleDef.ModuleType.EXE)
             {
-                OutputData += "add_executable( " + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleSourceFiles.ToArray()) + ")\n";
+                OutputData += "add_executable( " + Module.ModuleName + " " + AllSourceFiles + ")\n";
                 OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES ENABLE_EXPORTS On)\n";
             }
 
@@ -253,7 +253,7 @@ namespace EngineBuildTool
                 OutputData += "include_directories(" + Module.ModuleName + " " + ArrayStringQuotes(Dirs.ToArray()) + ")\n";
                 Dirs.Clear();
             }
-            OutputData += "source_group(TREE \"${CMAKE_CURRENT_SOURCE_DIR}\" FILES " + AllSourceFiles + ")\n";
+            OutputData += "source_group(TREE \"" + SanitizePath(ModuleDefManager.GetRootPath()) + "\" FILES " + AllSourceFiles + ")\n";
             if (Module.UseCorePCH)
             {
                 Module.PCH = ModuleDefManager.CoreModule.PCH;
