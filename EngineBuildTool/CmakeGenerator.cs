@@ -190,21 +190,23 @@ namespace EngineBuildTool
             Module.GatherSourceFiles();
             Module.GatherIncludes();
             string AllSourceFiles = ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
+            string ExtraSourceFiles = ArrayStringQuotes(Module.ModuleExtraFiles.ToArray());
+            string ALLFiles = AllSourceFiles + ExtraSourceFiles;
             if (Module.ModuleOutputType == ModuleDef.ModuleType.ModuleDLL)
             {
-                OutputData += "add_library( " + Module.ModuleName + " MODULE " + AllSourceFiles + ")\n";
+                OutputData += "add_library( " + Module.ModuleName + " MODULE " + ALLFiles + ")\n";
             }
             else if (Module.ModuleOutputType == ModuleDef.ModuleType.DLL)
             {
-                OutputData += "add_library( " + Module.ModuleName + " SHARED " + AllSourceFiles + ")\n";
+                OutputData += "add_library( " + Module.ModuleName + " SHARED " + ALLFiles + ")\n";
             }
             else if (Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
             {
-                OutputData += "add_library( " + Module.ModuleName + " STATIC " + AllSourceFiles + ")\n";
+                OutputData += "add_library( " + Module.ModuleName + " STATIC " + ALLFiles + ")\n";
             }
             else if (Module.ModuleOutputType == ModuleDef.ModuleType.EXE)
             {
-                OutputData += "add_executable( " + Module.ModuleName + " " + AllSourceFiles + ")\n";
+                OutputData += "add_executable( " + Module.ModuleName + " " + ALLFiles + ")\n";
                 OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES ENABLE_EXPORTS On)\n";
             }
 
@@ -253,7 +255,8 @@ namespace EngineBuildTool
                 OutputData += "include_directories(" + Module.ModuleName + " " + ArrayStringQuotes(Dirs.ToArray()) + ")\n";
                 Dirs.Clear();
             }
-            OutputData += "source_group(TREE \"" + SanitizePath(ModuleDefManager.GetRootPath()) + "\" FILES " + AllSourceFiles + ")\n";
+            OutputData += "source_group(TREE \"" + SanitizePath(ModuleDefManager.GetRootPath()) + "\" FILES " + ALLFiles + ")\n";
+            OutputData += "set_source_files_properties(" + ExtraSourceFiles + " PROPERTIES HEADER_FILE_ONLY ON)\n";
             if (Module.UseCorePCH)
             {
                 Module.PCH = ModuleDefManager.CoreModule.PCH;
@@ -280,7 +283,10 @@ namespace EngineBuildTool
                 }
 
             }
-
+            if (CanModuleUnity(Module))
+            {
+                Module.PreProcessorDefines.Add("WITH_UNITY");
+            }
             OutputData += "target_compile_definitions(" + Module.ModuleName + " PRIVATE " + ListStringDefines(Module.PreProcessorDefines) + ")\n";
             ///WHOLEARCHIVE
             if (Module.ModuleDepends.Count > 0 && Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
@@ -355,9 +361,19 @@ namespace EngineBuildTool
             Console.WriteLine("Exitcode: " + process.ExitCode);
         }
         public static bool AllowUnityBuild = true;
-        void EnableUnityBuild(ModuleDef md)
+
+        public bool CanModuleUnity(ModuleDef md)
         {
             if (!md.UseUnity || !AllowUnityBuild || !UseVs17)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        void EnableUnityBuild(ModuleDef md)
+        {
+            if (!CanModuleUnity(md))
             {
                 return;
             }

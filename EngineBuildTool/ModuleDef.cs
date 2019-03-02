@@ -22,6 +22,7 @@ namespace EngineBuildTool
         public bool UseConsoleSubSystem = false;
         //Generated
         public List<string> ModuleSourceFiles = new List<string>();
+        public List<string> ModuleExtraFiles = new List<string>();
         public List<LibRef> ModuleLibs = new List<LibRef>();
         public List<string> DelayedLoadDlls = new List<string>();
         public List<string> PreProcessorDefines = new List<string>();
@@ -67,17 +68,19 @@ namespace EngineBuildTool
             GetFiles("*.hpp");
             GetFiles("*.c");
             GetFiles("*.cpp");
+            GetFiles("*.cs", ModuleDefManager.GetSourcePath() + "\\" + SourceFileSearchDir, true);
             if (IsCoreModule)
             {
-                GetFiles("*.*", ModuleDefManager.GetRootPath() + "\\Shaders");
+                GetFiles("*.*", ModuleDefManager.GetRootPath() + "\\Shaders", false);
+                ModuleExtraFiles.Add(CmakeGenerator.SanitizePath(ModuleDefManager.GetSourcePath() + "\\Core.Target.cs"));
             }
         }
         void GetFiles(string Type)
         {
             string path = ModuleDefManager.GetSourcePath() + "\\" + SourceFileSearchDir;
-            GetFiles(Type, path);
+            GetFiles(Type, path, true);
         }
-        void GetFiles(string Type, string path)
+        void GetFiles(string Type, string path, bool Source)
         {
             try
             {
@@ -87,7 +90,14 @@ namespace EngineBuildTool
                     files[i] = files[i].Replace(ModuleDefManager.GetSourcePath() + "\\", "");
                     files[i] = CmakeGenerator.SanitizePath(files[i]);
                 }
-                ModuleSourceFiles.AddRange(files);
+                if (Source)
+                {
+                    ModuleSourceFiles.AddRange(files);
+                }
+                else
+                {
+                    ModuleExtraFiles.AddRange(files);
+                }
             }
             catch
             {
