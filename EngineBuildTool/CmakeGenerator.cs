@@ -10,6 +10,7 @@ namespace EngineBuildTool
 {
     class CmakeGenerator
     {
+        bool UseAllBuildWorkAround = true;
         const bool EnableFastLink = true;
         string OutputData = "";
         public static string SanitizePath(string input)
@@ -117,15 +118,32 @@ namespace EngineBuildTool
             OutputData += "message(\"Detected CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION = '${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}'\")\n";
 
         }
-
+        const string BuildAllTarget = "BuildAll";
         public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
         {
             GenHeader(buildConfigs);
             ProcessModule(CoreModule);
-            OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + CoreModule.ModuleName + ")\n";
+
             foreach (ModuleDef M in Modules)
             {
                 ProcessModule(M);
+            }
+            if (UseAllBuildWorkAround)
+            {
+                OutputData += "add_custom_target(" + BuildAllTarget + " ALL)\n";
+                foreach (ModuleDef M in Modules)
+                {
+                    OutputData += "add_dependencies(" + BuildAllTarget + " " + M.ModuleName + ")\n";
+                }
+                //A Workaround is used here to set the correct directories for running the project
+                OutputData += "set_target_properties(" + BuildAllTarget + " PROPERTIES FOLDER " + "Targets/" + ")\n";
+
+                OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + BuildAllTarget + ")\n";
+
+            }
+            else
+            {
+                OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + CoreModule.ModuleName + ")\n";
             }
             WriteToFile(ModuleDefManager.GetSourcePath());
 
@@ -136,6 +154,14 @@ namespace EngineBuildTool
             foreach (ModuleDef m in Modules)
             {
                 EnableUnityBuild(m);
+            }
+            if (UseAllBuildWorkAround)
+            {
+                foreach (BuildConfig bc in ModuleDefManager.CurrentConfigs)
+                {
+                    string path = SanitizePath(ModuleDefManager.GetBinPath() + "\\" + bc.Name + "\\");
+                    SetTargetOutput(BuildAllTarget, path, CoreModule.OutputObjectName, bc.Name);
+                }
             }
         }
         static string ConvertStringArrayToStringJoin(string[] array)
@@ -409,7 +435,49 @@ namespace EngineBuildTool
                 doc.Save(VxprojPath);
             }
         }
+        void SetTargetOutput(string Targetname, string outdir, string TargetNamestr, string config)
+        {
 
+            string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + Targetname + ".vcxproj";
+            if (!File.Exists(VxprojPath))
+            {
+                Console.WriteLine("Error: No project file!");
+                return;
+            }
+            XmlDocument doc = new XmlDocument();
+            doc.Load(VxprojPath);
+            var nsmgr = new XmlNamespaceManager(doc.NameTable);
+            nsmgr.AddNamespace("a", "http://schemas.microsoft.com/developer/msbuild/2003");
+
+
+            XmlNode newnode = doc.CreateElement("PropertyGroup", doc.DocumentElement.NamespaceURI);
+            doc.DocumentElement.InsertAfter(newnode, doc.DocumentElement.FirstChild);
+            XmlAttribute attrib = doc.CreateAttribute("Condition");
+            attrib.Value = "'$(Configuration)|$(Platform)' == '" + config + "|x64'";
+            newnode.Attributes.Append(attrib);
+            XmlNode OutDir = doc.CreateElement("OutDir", doc.DocumentElement.NamespaceURI);
+            OutDir.InnerText = outdir;
+            newnode.AppendChild(OutDir);
+            XmlNode TargetName = doc.CreateElement("TargetName", doc.DocumentElement.NamespaceURI);
+            TargetName.InnerText = TargetNamestr;
+            newnode.AppendChild(TargetName);
+#if false
+            XmlNodeList target = doc.SelectNodes("//*[local-name()='PropertyGroup']", nsmgr);
+            foreach (XmlNode n in target)
+            {
+                if (n != null)
+                {
+                                      
+                }
+            }
+#endif
+            doc.Save(VxprojPath);
+        }
+        //<PropertyGroup Condition = "'$(Configuration)|$(Platform)'=='Debug|x64'" >
+        //  < OutDir > C:\Users\AANdr\Dropbox\Engine\Engine\Repo\GraphicsEngine\Binaries\Debug\</OutDir>
+        //  <TargetName>BleedOut</TargetName>
+        //  <TargetExt>.exe</TargetExt>
+        //</PropertyGroup>
         private static void ProcessExpections(XmlDocument doc, XmlNamespaceManager nsmgr, ModuleDef md)
         {
             List<string> Excludes = new List<string>();
