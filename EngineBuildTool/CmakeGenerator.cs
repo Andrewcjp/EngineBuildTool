@@ -276,9 +276,17 @@ namespace EngineBuildTool
 
             List<string> Dirs = new List<string>();
             Module.GetIncludeDirs(ref Dirs);
-            if (Dirs.Count != 0)
+            if (Module != ModuleDefManager.CoreModule)
             {
+                ModuleDefManager.CoreModule.GetIncludeDirs(ref Dirs);
+            }
+            if (Dirs.Count > 0)
+            {
+#if true
+                OutputData += "target_include_directories(" + Module.ModuleName + " PRIVATE " + ArrayStringQuotes(Dirs.ToArray()) + ")\n";
+#else
                 OutputData += "include_directories(" + Module.ModuleName + " " + ArrayStringQuotes(Dirs.ToArray()) + ")\n";
+#endif
                 Dirs.Clear();
             }
             OutputData += "source_group(TREE \"" + SanitizePath(ModuleDefManager.GetRootPath()) + "\" FILES " + ALLFiles + ")\n";
@@ -289,7 +297,7 @@ namespace EngineBuildTool
             }
             if (Module.PCH.Length != 0)
             {
-                string PCHString = "Source/" + Module.SourceFileSearchDir + "/" + Module.PCH;
+                string PCHString = /*"Source/" +*/ /*Module.SourceFileSearchDir + "/"+*/  Module.PCH;
                 string pchstring = "/FI" + PCHString + ".h";
                 string SharedHeaderData = " /Yu" + PCHString + ".h ";
                 if (Module.UseCorePCH)

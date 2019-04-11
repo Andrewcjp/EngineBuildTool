@@ -48,6 +48,9 @@ namespace EngineBuildTool
             {
                 PreProcessorDefines.Add(t);
             }
+            string path = "//Intermediate//Generated//" + ModuleName + "//";
+            IncludeDirectories.Add(path);
+            IncludeDirectories.Add("//Source//" + ModuleName + "//");
         }
         public void GetIncludeDirs(ref List<string> List)
         {
