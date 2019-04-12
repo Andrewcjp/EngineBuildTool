@@ -10,6 +10,7 @@ namespace EngineBuildTool
     public class LibRef
     {
         public string BuildType = "";
+        public LibBuildConfig BuildCFg = LibBuildConfig.General;
         public string Path = "";
         public string Name = "";
     }
@@ -20,46 +21,90 @@ namespace EngineBuildTool
 
         }
         public List<LibSearchPath> LibSearchPaths = new List<LibSearchPath>();
+        public List<LibSearchPath> DynmaicLibSearchPaths = new List<LibSearchPath>();
         public void PopulateLibs()
         {
             foreach (LibSearchPath path in LibSearchPaths)
             {
+                List<string> files = path.GetFiles();
                 if (path.IsLibaryDll)
                 {
-                    continue;
+                    AddModulePaths(files, path.LibBuildConfig, true);
                 }
-                List<string> files = FileUtils.GetFilePaths(ModuleDefManager.GetStaticLibPath() + path.Path, "*.lib", true, SearchOption.TopDirectoryOnly);
-                AddModulePaths(files, path.LibBuildConfig);
+                else
+                {
+                    AddModulePaths(files, path.LibBuildConfig, false);
+                }
             }
         }
         List<LibRef> FoundLibs = new List<LibRef>();
+        List<LibRef> FoundDLLs = new List<LibRef>();
         List<string> BinaryDirectories = new List<string>();
-        public bool GetLib(string name, out LibRef Output)
+        public static bool IsValidConfig(LibBuildConfig Current, LibBuildConfig other)
         {
-            foreach (LibRef r in FoundLibs)
+            if (Current == LibBuildConfig.General || other == LibBuildConfig.General)
             {
-                if (r.Name == name)
-                {
-                    Output = r;
-                    return true;
-                }
+                return true;
             }
-            Output = null;
-            return false;
+            return Current == other;
         }
-        public void CopyDllsToConfig(List<BuildConfig> configs)
+        public bool GetLib(string name, out LibRef Output, LibBuildConfig CFG, bool IsDLL = false)
         {
-            string rootpath = ModuleDefManager.GetDynamicLibPath();
-            foreach (BuildConfig bc in configs)
+            name = Path.GetFileNameWithoutExtension(name);
+            Output = null;
+            if (IsDLL)
             {
-                foreach (LibSearchPath path in LibSearchPaths)
+                foreach (LibRef r in FoundDLLs)
                 {
-                    if (path.IsLibaryDll)
+                    if (r.Name == name)
                     {
-                        FileUtils.CopyAllFromPath(rootpath + path.Path + ModuleDefManager.GetConfigPathName(bc.CurrentType), "*.*", ModuleDefManager.GetBinPath() + "\\" + bc.Name);
+                        Output = r;
+                        return true;
                     }
                 }
             }
+            else
+            {
+                foreach (LibRef r in FoundLibs)
+                {
+                    if (r.Name == name && r.BuildCFg == CFG)
+                    {
+                        Output = r;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        public void CopyDllsToConfig(List<BuildConfig> configs, List<ModuleDef> ALLModules)
+        {
+            foreach (BuildConfig bc in configs)
+            {
+                Console.WriteLine("Files for: '" + bc.Name + "' Of type " + bc.CurrentType.ToString());
+                List<string> DLLsForConfig = new List<string>();
+                foreach (ModuleDef M in ALLModules)
+                {
+                    foreach (LibNameRef LNR in M.DLLs)
+                    {
+                        LibRef DLLref = null;
+                        GetLib(LNR.LibName, out DLLref, LibBuildConfig.General, true);
+                        if (DLLref == null)
+                        {
+                            Console.WriteLine("Error Failed to find DLL " + LNR.LibName);
+                            continue;
+                        }
+                        if (!IsValidConfig(DLLref.BuildCFg, bc.GetLibType()))
+                        {
+                            continue;
+                        }
+                        string filepath = ModuleDefManager.GetBinPath() + "\\" + bc.Name + "\\" + Path.GetFileName(LNR.LibName);
+                        Directory.CreateDirectory(Path.GetDirectoryName(filepath));
+                        File.Copy(DLLref.Path, filepath, true);
+                        Console.WriteLine("Copied " + Path.GetFileName(LNR.LibName) + " to output dir");
+                    }
+                }
+            }
+
         }
         static string BCToString(LibBuildConfig config)
         {
@@ -75,7 +120,7 @@ namespace EngineBuildTool
             return "-1";
         }
 
-        void AddModulePaths(List<string> paths, LibBuildConfig buildconfig)
+        void AddModulePaths(List<string> paths, LibBuildConfig buildconfig, bool DLL)
         {
             foreach (string s in paths)
             {
@@ -83,24 +128,63 @@ namespace EngineBuildTool
                 Newref.BuildType = BCToString(buildconfig);
                 Newref.Path = CmakeGenerator.SanitizePath(s);
                 Newref.Name = Path.GetFileNameWithoutExtension(s);
-                FoundLibs.Add(Newref);
+                Newref.BuildCFg = buildconfig;
+                if (DLL)
+                {
+                    FoundDLLs.Add(Newref);
+                }
+                else
+                {
+                    FoundLibs.Add(Newref);
+                }
             }
         }
         public void AddLibsForModule(ModuleDef m, bool All = false)
         {
             if (All)
             {
-                m.ModuleLibs.AddRange(FoundLibs);
-            }
-            else
-            {
-                foreach (string LibName in m.LibNames)
+                m.LibNameRefs.Add(new LibNameRef("assimp.lib"));
+                m.LibNameRefs.Add(new LibNameRef("freetype.lib"));
+                m.LibNameRefs.Add(new LibNameRef("assimp.lib"));
+                m.LibNameRefs.Add(new LibNameRef("nvapi64.lib"));
+                m.LibNameRefs.Add(new LibNameRef("SOIL.lib", LibBuildConfig.Optimized));
+                m.LibNameRefs.Add(new LibNameRef("SOILd.lib", LibBuildConfig.Debug));
+                foreach (LibRef r in FoundLibs)
                 {
-                    LibRef outputlib = null;
-                    if (GetLib(LibName, out outputlib))
+                    if (r.Path.ToLower().Contains("ak") || r.Path.ToLower().Contains("ww"))
                     {
-                        m.ModuleLibs.Add(outputlib);
+                        if (r.BuildType.ToLower().Contains("debug"))
+                        {
+                            m.LibNameRefs.Add(new LibNameRef(r.Name, LibBuildConfig.Debug));
+                        }
+                        if (r.BuildType.ToLower().Contains("opt"))
+                        {
+                            m.LibNameRefs.Add(new LibNameRef(r.Name, LibBuildConfig.Optimized));
+                        }
                     }
+                }
+            }
+
+            {
+                if (m.LibNameRefs.Count > 0)
+                {
+                    foreach (LibNameRef LibName in m.LibNameRefs)
+                    {
+                        LibRef outputlib = null;
+                        string CleanLibName = Path.GetFileNameWithoutExtension(LibName.LibName);
+                        if (GetLib(CleanLibName, out outputlib, LibName.Config))
+                        {
+                            m.ModuleLibs.Add(outputlib);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Error: failed to find lib " + LibName.LibName);
+                        }
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Warning: using old system for libs");
                 }
             }
         }

@@ -14,6 +14,10 @@ namespace EngineBuildTool
     {
         public static List<string> GetFilePaths(string dir, string type, bool AsFullPath = false, SearchOption opt = SearchOption.AllDirectories)
         {
+            if (!Directory.Exists(dir))
+            {
+                return new List<string>();
+            }
             List<string> files = new List<string>(Directory.GetFiles(dir, type, opt));
             for (int i = files.Count - 1; i >= 0; i--)
             {
@@ -121,6 +125,7 @@ namespace EngineBuildTool
         }
         public static void CreateSymbolicLink(string LinkPath, string TargetPath, bool SilentExistError = false)
         {
+#if false
             CreateSymbolicLink(TargetPath, LinkPath, SymbolicLink.dev);
             int returncode = Marshal.GetLastWin32Error();
             if (returncode == 0)
@@ -142,6 +147,7 @@ namespace EngineBuildTool
             {
                 Console.WriteLine("Error: Failed to create SymLink with error code:" + returncode);
             }
+#endif
         }
         public static void DeleteDirectory(string name)
         {

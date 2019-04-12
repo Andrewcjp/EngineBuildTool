@@ -60,5 +60,18 @@ namespace EngineBuildTool
         public BuildConfiguration.BuildType CurrentType;
         public BuildConfiguration.PackageType CurrentPackageType;
         public List<string> Defines;
+        public LibBuildConfig GetLibType()
+        {
+            switch (CurrentType)
+            {
+                case BuildConfiguration.BuildType.Debug:
+                    return LibBuildConfig.Debug;
+                case BuildConfiguration.BuildType.Profile:
+                    return LibBuildConfig.Debug;
+                case BuildConfiguration.BuildType.Release:
+                    return LibBuildConfig.Optimized;
+            }
+            return LibBuildConfig.General;
+        }
     }
 }

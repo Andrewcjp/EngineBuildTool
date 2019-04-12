@@ -7,6 +7,18 @@ using System.Threading.Tasks;
 
 namespace EngineBuildTool
 {
+    public struct LibNameRef
+    {
+        public string LibName;
+        public LibBuildConfig Config;
+        public bool IsDLL;
+        public LibNameRef(string name, LibBuildConfig Conf = LibBuildConfig.General, bool IsaDLL = false)
+        {
+            LibName = name;
+            Config = Conf;
+            IsDLL = IsaDLL;
+        }
+    }
     public class ModuleDef
     {
         public string ModuleName = "";
@@ -17,7 +29,8 @@ namespace EngineBuildTool
         public string PCH = "";
         public string SourceFileSearchDir = "";
         public List<LibSearchPath> AdditonalLibSearchPaths = new List<LibSearchPath>();
-        public List<string> LibNames = new List<string>();
+        public List<string> LibNames = new List<string>();//todo: remove this line
+        public List<LibNameRef> LibNameRefs = new List<LibNameRef>();
         public List<string> IncludeDirectories = new List<string>();
         public bool UseConsoleSubSystem = false;
         //Generated
@@ -35,6 +48,9 @@ namespace EngineBuildTool
         public string OutputObjectName = "";
         public bool IsGameModule = false;
         public bool IsCoreModule = false;
+        public List<string> ThirdPartyModules = new List<string>();
+        public List<ExternalModuleDef> ExternalModules = new List<ExternalModuleDef>();
+        public List<LibNameRef> DLLs = new List<LibNameRef>();
         public ModuleDef()
         { }
         public void PostInit(TargetRules r)
@@ -51,7 +67,17 @@ namespace EngineBuildTool
             string path = "//Intermediate//Generated//" + ModuleName + "//";
             IncludeDirectories.Add(path);
             IncludeDirectories.Add("//Source//" + ModuleName + "//");
+            foreach (ExternalModuleDef EMD in ExternalModules)
+            {                
+                EMD.Build();
+
+                IncludeDirectories.Add(ModuleDefManager.GetThirdPartyDirRelative() + EMD.IncludeDir);
+                DLLs.AddRange(EMD.DynamaicLibs);
+                LibNameRefs.AddRange(EMD.StaticLibs);
+                AdditonalLibSearchPaths.AddRange(EMD.LibrarySearchPaths);
+            }
         }
+
         public void GetIncludeDirs(ref List<string> List)
         {
             List.AddRange(IncludeDirectories);

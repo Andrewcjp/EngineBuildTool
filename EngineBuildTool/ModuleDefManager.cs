@@ -8,20 +8,20 @@ using System.Runtime.Serialization;
 
 namespace EngineBuildTool
 {
-    class ModuleDefManager
+    public class ModuleDefManager
     {
         Library Projectdata;
         public string SourceDir = "";
 
         string BuildAssembly = "BuildCsFiles.dll";
-        string BuildCsString = ".Build";
-        string TargetCsString = ".Target";
+        const string BuildCsString = ".Build";
+        const string TargetCsString = ".Target";
         List<string> ModuleNames = new List<string>();
         TargetRules TargetRulesObject;
         List<ModuleDef> ModuleObjects = new List<ModuleDef>();
         const string DefaultTargetRulesName = "CoreTargetRules";
         public string TargetRulesName = "";
-
+        List<ModuleDef> ALLModules = new List<ModuleDef>();
 
         public static string GetSourcePath()
         {
@@ -30,6 +30,14 @@ namespace EngineBuildTool
         public static string GetRootPath()
         {
             return Directory.GetCurrentDirectory();
+        }
+        public static string GetThirdPartyDir()
+        {
+            return Directory.GetCurrentDirectory() + GetThirdPartyDirRelative();
+        }
+        public static string GetThirdPartyDirRelative()
+        {
+            return "\\Source\\ThirdParty\\";
         }
         public static string GetBinPath()
         {
@@ -86,7 +94,7 @@ namespace EngineBuildTool
             FileUtils.DeleteFile(BuildAssembly);
             FileUtils.DeleteFile("EngineSolution.sln");
         }
-
+        Assembly CompiledAssembly = null;
         void GatherModuleFiles()
         {
             List<string> SourceFiles = new List<string>();
@@ -102,7 +110,16 @@ namespace EngineBuildTool
             string[] Targetfiles = Directory.GetFiles(SourceDir, "*" + TargetCsString + ".cs", SearchOption.AllDirectories);
             SourceFiles.AddRange(Targetfiles);
 
-            Assembly CompiledAssembly = CompileAssembly("BuildCsFiles.dll", SourceFiles);
+            try
+            {
+                CompiledAssembly = CompileAssembly("BuildCsFiles.dll", SourceFiles);
+            }
+            catch (Exception E)
+            {
+                Console.WriteLine("Compile Failed with error " + E.Message);
+                Console.Read();
+                Environment.Exit(1);
+            }
             AppDomain.CurrentDomain.Load(CompiledAssembly.GetName());
 
 
@@ -135,23 +152,32 @@ namespace EngineBuildTool
                     Console.WriteLine("Excluded Module " + s);
                 }
             }
-            Type ModuleRulesType;
-            foreach (string module in ModuleNames)
+
+            InitObjectsOfType<ModuleDef>(ModuleNames, ref ModuleObjects, CompiledAssembly, ModuleSufix);
+            ALLModules.AddRange(ModuleObjects);
+            
+        }
+
+        void InitObjectsOfType<T>(List<string> Names, ref List<T> ConstructedObjects, Assembly CompiledAssembly, string Sufix = "")
+        {
+            Type ObjectType;
+            foreach (string name in Names)
             {
-                ModuleRulesType = CompiledAssembly.GetType(module + ModuleSufix);
-                if (ModuleRulesType != null)
+                ObjectType = CompiledAssembly.GetType(name + Sufix);
+                if (ObjectType != null)
                 {
-                    ModuleDef RulesObject;
-                    RulesObject = (ModuleDef)FormatterServices.GetUninitializedObject(ModuleRulesType);
-                    ConstructorInfo Constructor = ModuleRulesType.GetConstructor(Type.EmptyTypes);
+                    T RulesObject;
+                    RulesObject = (T)FormatterServices.GetUninitializedObject(ObjectType);
+                    ConstructorInfo Constructor = ObjectType.GetConstructor(Type.EmptyTypes);
                     if (Constructor != null)
                     {
                         Constructor.Invoke(RulesObject, new object[] { });
-                        ModuleObjects.Add(RulesObject);
+                        ConstructedObjects.Add(RulesObject);
                     }
                 }
             }
         }
+
         public static ModuleDef CoreModule = null;
         public static List<BuildConfig> CurrentConfigs = new List<BuildConfig>();
 
@@ -164,6 +190,7 @@ namespace EngineBuildTool
             CmakeGenerator gen = new CmakeGenerator();
             //core module Is Special!
             CoreModule = TargetRulesObject.GetCoreModule();
+            ALLModules.Add(CoreModule);
             Projectdata.LibSearchPaths.AddRange(TargetRulesObject.LibSearchPaths);
             PreProcessModules();
             Projectdata.PopulateLibs();
@@ -175,7 +202,7 @@ namespace EngineBuildTool
             gen.RunPostStep(ModuleObjects, CoreModule);
             LogStage("Copy DLLs");
             FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(), GetIntermediateDir() + "\\Engine.sln");
-            Projectdata.CopyDllsToConfig(CurrentConfigs);
+            Projectdata.CopyDllsToConfig(CurrentConfigs, ALLModules);
             LinkDirectiories();
             LogStage("Complete");
 
@@ -210,10 +237,13 @@ namespace EngineBuildTool
         }
 
         void PreProcessModules()
-        {
+        {            
+            InitObjectsOfType(CoreModule.ThirdPartyModules, ref CoreModule.ExternalModules, CompiledAssembly);
             CoreModule.PostInit(TargetRulesObject);
+            Projectdata.LibSearchPaths.AddRange(CoreModule.AdditonalLibSearchPaths);
             foreach (ModuleDef def in ModuleObjects)
             {
+                InitObjectsOfType(def.ThirdPartyModules, ref def.ExternalModules, CompiledAssembly);
                 def.PostInit(TargetRulesObject);
                 if (def.ModuleOutputType == ModuleDef.ModuleType.LIB)
                 {
@@ -223,7 +253,7 @@ namespace EngineBuildTool
                 {
                     def.ModuleDepends.Add(CoreModule.ModuleName);
                 }
-                if (def.AdditonalLibSearchPaths.Count != 0)
+                if (def.AdditonalLibSearchPaths.Count > 0)
                 {
                     Projectdata.LibSearchPaths.AddRange(def.AdditonalLibSearchPaths);
                 }
@@ -241,7 +271,6 @@ namespace EngineBuildTool
 
         static Assembly CompileAssembly(string OutputAssemblyPath, List<string> SourceFileNames, List<string> ReferencedAssembies = null, List<string> PreprocessorDefines = null, bool TreatWarningsAsErrors = false)
         {
-
             CompilerParameters CompileParams = new CompilerParameters();
             CompileParams.OutputAssembly = OutputAssemblyPath;
 
@@ -267,7 +296,7 @@ namespace EngineBuildTool
                 }
                 throw new Exception();
             }
-            Console.WriteLine("Complie Sucessful");
+            Console.WriteLine("Compile Successful");
 
             return CompileResults.CompiledAssembly;
         }

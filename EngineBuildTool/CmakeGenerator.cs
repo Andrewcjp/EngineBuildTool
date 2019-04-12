@@ -15,7 +15,9 @@ namespace EngineBuildTool
         string OutputData = "";
         public static string SanitizePath(string input)
         {
-            return input.Replace("\\", "/"); ;
+            input = input.Replace("\\", "/");
+            input = input.Replace("//", "/");
+            return input;
         }
         public static string SanitizePathToDoubleBack(string input)
         {
@@ -260,14 +262,6 @@ namespace EngineBuildTool
             {
                 OutputData += "target_link_libraries(" + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleLibs.ToArray()) + ")\n";
             }
-
-            //if (Module.IsGameModule)
-            //{
-            //    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_OPTIONS  \"${}\")\n";
-            //    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_OPTIONS  \"${CMAKE_EXE_LINKER_FLAGS_DEBUG}\")\n";
-            //    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES CMAKE_MODULE_LINKER_DEVELOPMENT \"${CMAKE_MODULE_LINKER_FLAGS_DEBUG}\")\n";
-            //    OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES CMAKE_SHARED_LINKER_FLAGS_DEVELOPMENT \"${CMAKE_SHARED_LINKER_FLAGS_DEBUG}\")\n";
-            //}
 
             if (Module.ModuleDepends.Count != 0)
             {
