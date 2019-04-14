@@ -80,7 +80,7 @@ namespace EngineBuildTool
         {
             foreach (BuildConfig bc in configs)
             {
-                Console.WriteLine("Files for: '" + bc.Name + "' Of type " + bc.CurrentType.ToString());
+                Console.WriteLine("Copying Files for: '" + bc.Name + "' Of type " + bc.CurrentType.ToString());
                 List<string> DLLsForConfig = new List<string>();
                 foreach (ModuleDef M in ALLModules)
                 {
@@ -100,13 +100,16 @@ namespace EngineBuildTool
                         string filepath = ModuleDefManager.GetBinPath() + "\\" + bc.Name + "\\" + Path.GetFileName(LNR.LibName);
                         Directory.CreateDirectory(Path.GetDirectoryName(filepath));
                         File.Copy(DLLref.Path, filepath, true);
-                        Console.WriteLine("Copied " + Path.GetFileName(LNR.LibName) + " to output dir");
+                        if (ModuleDefManager.IsDebug())
+                        {
+                            Console.WriteLine("Copied " + Path.GetFileName(LNR.LibName) + " to output dir");
+                        }
                     }
                 }
             }
 
         }
-        static string BCToString(LibBuildConfig config)
+        public static string BCToString(LibBuildConfig config)
         {
             switch (config)
             {
@@ -141,50 +144,20 @@ namespace EngineBuildTool
         }
         public void AddLibsForModule(ModuleDef m, bool All = false)
         {
-            if (All)
+            if (m.LibNameRefs.Count > 0)
             {
-                m.LibNameRefs.Add(new LibNameRef("assimp.lib"));
-                m.LibNameRefs.Add(new LibNameRef("freetype.lib"));
-                m.LibNameRefs.Add(new LibNameRef("assimp.lib"));
-                m.LibNameRefs.Add(new LibNameRef("nvapi64.lib"));
-                m.LibNameRefs.Add(new LibNameRef("SOIL.lib", LibBuildConfig.Optimized));
-                m.LibNameRefs.Add(new LibNameRef("SOILd.lib", LibBuildConfig.Debug));
-                foreach (LibRef r in FoundLibs)
+                foreach (LibNameRef LibName in m.LibNameRefs)
                 {
-                    if (r.Path.ToLower().Contains("ak") || r.Path.ToLower().Contains("ww"))
+                    LibRef outputlib = null;
+                    string CleanLibName = Path.GetFileNameWithoutExtension(LibName.LibName);
+                    if (GetLib(CleanLibName, out outputlib, LibName.Config))
                     {
-                        if (r.BuildType.ToLower().Contains("debug"))
-                        {
-                            m.LibNameRefs.Add(new LibNameRef(r.Name, LibBuildConfig.Debug));
-                        }
-                        if (r.BuildType.ToLower().Contains("opt"))
-                        {
-                            m.LibNameRefs.Add(new LibNameRef(r.Name, LibBuildConfig.Optimized));
-                        }
+                        m.ModuleLibs.Add(outputlib);
                     }
-                }
-            }
-
-            {
-                if (m.LibNameRefs.Count > 0)
-                {
-                    foreach (LibNameRef LibName in m.LibNameRefs)
+                    else
                     {
-                        LibRef outputlib = null;
-                        string CleanLibName = Path.GetFileNameWithoutExtension(LibName.LibName);
-                        if (GetLib(CleanLibName, out outputlib, LibName.Config))
-                        {
-                            m.ModuleLibs.Add(outputlib);
-                        }
-                        else
-                        {
-                            Console.WriteLine("Error: failed to find lib " + LibName.LibName);
-                        }
+                        Console.WriteLine("Error: failed to find lib " + LibName.LibName);
                     }
-                }
-                else
-                {
-                    Console.WriteLine("Warning: using old system for libs");
                 }
             }
         }

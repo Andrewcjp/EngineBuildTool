@@ -29,7 +29,6 @@ namespace EngineBuildTool
         public string PCH = "";
         public string SourceFileSearchDir = "";
         public List<LibSearchPath> AdditonalLibSearchPaths = new List<LibSearchPath>();
-        public List<string> LibNames = new List<string>();//todo: remove this line
         public List<LibNameRef> LibNameRefs = new List<LibNameRef>();
         public List<string> IncludeDirectories = new List<string>();
         public bool UseConsoleSubSystem = false;
@@ -51,6 +50,7 @@ namespace EngineBuildTool
         public List<string> ThirdPartyModules = new List<string>();
         public List<ExternalModuleDef> ExternalModules = new List<ExternalModuleDef>();
         public List<LibNameRef> DLLs = new List<LibNameRef>();
+        public List<string> SystemLibNames = new List<string>();
         public ModuleDef()
         { }
         public void PostInit(TargetRules r)
@@ -68,13 +68,22 @@ namespace EngineBuildTool
             IncludeDirectories.Add(path);
             IncludeDirectories.Add("//Source//" + ModuleName + "//");
             foreach (ExternalModuleDef EMD in ExternalModules)
-            {                
+            {
                 EMD.Build();
 
                 IncludeDirectories.Add(ModuleDefManager.GetThirdPartyDirRelative() + EMD.IncludeDir);
                 DLLs.AddRange(EMD.DynamaicLibs);
                 LibNameRefs.AddRange(EMD.StaticLibs);
                 AdditonalLibSearchPaths.AddRange(EMD.LibrarySearchPaths);
+                SystemLibNames.AddRange(EMD.SystemLibNames);               
+            }
+            foreach (string s in SystemLibNames)
+            {
+                LibRef L = new LibRef();
+                L.Path = s;
+                L.BuildCFg = LibBuildConfig.General;
+                L.BuildType = Library.BCToString(LibBuildConfig.General);
+                ModuleLibs.Add(L);
             }
         }
 

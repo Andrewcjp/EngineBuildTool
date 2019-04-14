@@ -15,6 +15,7 @@ namespace EngineBuildTool
         protected List<string> DLLs = new List<string>();
         protected List<string> DebugDLLs = new List<string>();
         protected List<string> ReleaseDLLs = new List<string>();
+        public List<string> SystemLibNames = new List<string>();
         protected List<LibSearchPath> AddFolderOfLibs = new List<LibSearchPath>();
         protected string ModuleRoot = "";
         //public outputs 

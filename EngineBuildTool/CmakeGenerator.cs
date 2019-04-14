@@ -400,7 +400,7 @@ namespace EngineBuildTool
                 }
             }
             process.WaitForExit();
-            Console.WriteLine("Exitcode: " + process.ExitCode);
+            Console.WriteLine("Cmake finished with Code: " + process.ExitCode);
         }
         public static bool AllowUnityBuild = true;
 
@@ -464,8 +464,6 @@ namespace EngineBuildTool
             doc.Load(VxprojPath);
             var nsmgr = new XmlNamespaceManager(doc.NameTable);
             nsmgr.AddNamespace("a", "http://schemas.microsoft.com/developer/msbuild/2003");
-
-
             XmlNode newnode = doc.CreateElement("PropertyGroup", doc.DocumentElement.NamespaceURI);
             doc.DocumentElement.InsertAfter(newnode, doc.DocumentElement.FirstChild);
             XmlAttribute attrib = doc.CreateAttribute("Condition");
@@ -477,23 +475,10 @@ namespace EngineBuildTool
             XmlNode TargetName = doc.CreateElement("TargetName", doc.DocumentElement.NamespaceURI);
             TargetName.InnerText = TargetNamestr;
             newnode.AppendChild(TargetName);
-#if false
-            XmlNodeList target = doc.SelectNodes("//*[local-name()='PropertyGroup']", nsmgr);
-            foreach (XmlNode n in target)
-            {
-                if (n != null)
-                {
-                                      
-                }
-            }
-#endif
+
             doc.Save(VxprojPath);
         }
-        //<PropertyGroup Condition = "'$(Configuration)|$(Platform)'=='Debug|x64'" >
-        //  < OutDir > C:\Users\AANdr\Dropbox\Engine\Engine\Repo\GraphicsEngine\Binaries\Debug\</OutDir>
-        //  <TargetName>BleedOut</TargetName>
-        //  <TargetExt>.exe</TargetExt>
-        //</PropertyGroup>
+
         private static void ProcessExpections(XmlDocument doc, XmlNamespaceManager nsmgr, ModuleDef md)
         {
             List<string> Excludes = new List<string>();

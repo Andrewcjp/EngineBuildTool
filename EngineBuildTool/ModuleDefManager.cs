@@ -22,7 +22,10 @@ namespace EngineBuildTool
         const string DefaultTargetRulesName = "CoreTargetRules";
         public string TargetRulesName = "";
         List<ModuleDef> ALLModules = new List<ModuleDef>();
-
+        public static bool IsDebug()
+        {
+            return false;
+        }
         public static string GetSourcePath()
         {
             return Directory.GetCurrentDirectory() + "\\Source";
@@ -67,7 +70,7 @@ namespace EngineBuildTool
 
         void LogStage(string stagename)
         {
-            const int LineSize = 20;
+            const int LineSize = 40;
             int Length = LineSize - stagename.Length;
             string logstring = "";
             for (int i = 0; i < Length / 2; i++)
@@ -195,10 +198,11 @@ namespace EngineBuildTool
             PreProcessModules();
             Projectdata.PopulateLibs();
             ProcessModules();
-
+            LogStage("CMake Stage");
             Console.WriteLine("Running CMake");
             gen.GenerateList(ModuleObjects, CoreModule, CurrentConfigs);
             gen.RunCmake();
+            LogStage("Post Gen");
             gen.RunPostStep(ModuleObjects, CoreModule);
             LogStage("Copy DLLs");
             FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(), GetIntermediateDir() + "\\Engine.sln");
