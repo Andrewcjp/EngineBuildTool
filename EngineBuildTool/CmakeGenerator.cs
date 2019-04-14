@@ -10,6 +10,7 @@ namespace EngineBuildTool
 {
     class CmakeGenerator
     {
+        bool PreBuild_HeaderTool = false;
         bool UseAllBuildWorkAround = true;
         const bool EnableFastLink = true;
         string OutputData = "";
@@ -121,6 +122,7 @@ namespace EngineBuildTool
 
         }
         const string BuildAllTarget = "BuildAll";
+        const string HeaderToolTarget = "HeaderTool";
         public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
         {
             GenHeader(buildConfigs);
@@ -130,9 +132,19 @@ namespace EngineBuildTool
             {
                 ProcessModule(M);
             }
+            {//Header tool project
+                OutputData += "add_custom_target(" + HeaderToolTarget + " DEPENDS  always_rebuild)\n";
+                string headertoolString = SanitizePath(ModuleDefManager.GetSourcePath() + "/EngineHeaderTool.exe ");
+                OutputData += "add_custom_command(TARGET " + HeaderToolTarget + "  PRE_BUILD  \nCOMMAND \"" + headertoolString + "\" )\n";
+                OutputData += "set_target_properties(" + HeaderToolTarget + " PROPERTIES FOLDER " + "Build/" + ")\n";
+            }
             if (UseAllBuildWorkAround)
             {
                 OutputData += "add_custom_target(" + BuildAllTarget + " ALL)\n";
+                if (PreBuild_HeaderTool)
+                {
+                    OutputData += "add_dependencies(" + BuildAllTarget + " " + HeaderToolTarget + ")\n";
+                }
                 foreach (ModuleDef M in Modules)
                 {
                     OutputData += "add_dependencies(" + BuildAllTarget + " " + M.ModuleName + ")\n";
@@ -141,7 +153,6 @@ namespace EngineBuildTool
                 OutputData += "set_target_properties(" + BuildAllTarget + " PROPERTIES FOLDER " + "Targets/" + ")\n";
 
                 OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + BuildAllTarget + ")\n";
-
             }
             else
             {
@@ -262,7 +273,10 @@ namespace EngineBuildTool
             {
                 OutputData += "target_link_libraries(" + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleLibs.ToArray()) + ")\n";
             }
-
+            if (PreBuild_HeaderTool)
+            {
+                OutputData += "add_dependencies(" + Module.ModuleName + " " + HeaderToolTarget + ")\n";
+            }
             if (Module.ModuleDepends.Count != 0)
             {
                 OutputData += "target_link_libraries(" + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleDepends.ToArray()) + ")\n";
