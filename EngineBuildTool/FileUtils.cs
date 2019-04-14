@@ -125,7 +125,6 @@ namespace EngineBuildTool
         }
         public static void CreateSymbolicLink(string LinkPath, string TargetPath, bool SilentExistError = false)
         {
-#if false
             CreateSymbolicLink(TargetPath, LinkPath, SymbolicLink.dev);
             int returncode = Marshal.GetLastWin32Error();
             if (returncode == 0)
@@ -147,7 +146,6 @@ namespace EngineBuildTool
             {
                 Console.WriteLine("Error: Failed to create SymLink with error code:" + returncode);
             }
-#endif
         }
         public static void DeleteDirectory(string name)
         {
