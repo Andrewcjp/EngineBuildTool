@@ -91,7 +91,7 @@ namespace EngineBuildTool
             OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"" + OutputDir + "\")\n";
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";
             OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";///NODEFAULTLIB:MSVCRT
-            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS \")\n";
+            OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /IGNORE:4099 \")\n";
             OutputData += "set(CMAKE_EXE_LINKER_CONSOLE_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE  \")\n";
             if (EnableFastLink)
             {
@@ -102,7 +102,7 @@ namespace EngineBuildTool
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
             OutputData += GetConfigationStrings(buildConfigs);
             OutputData += "add_definitions(/MP)\n";
-            OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\nadd_definitions(/sdl)\n";
+            OutputData += "add_definitions(-DUNICODE)\nadd_definitions(-D_UNICODE)\n add_definitions(/sdl)\n";//add_definitions(/sdl)\n
             foreach (BuildConfig b in buildConfigs)
             {
                 if (b.CurrentPackageType == BuildConfiguration.PackageType.ShippingPackage && b.CurrentType == BuildConfiguration.BuildType.Release)
@@ -153,6 +153,7 @@ namespace EngineBuildTool
                 OutputData += "set_target_properties(" + BuildAllTarget + " PROPERTIES FOLDER " + "Targets/" + ")\n";
 
                 OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + BuildAllTarget + ")\n";
+
             }
             else
             {
@@ -343,6 +344,11 @@ namespace EngineBuildTool
             if (Module.NeedsCore && Module != ModuleDefManager.CoreModule)
             {
                 OutputData += "add_dependencies(" + Module.ModuleName + " Core )\n";
+            }
+            if (Module.IsCoreModule)
+            {
+                string VersionGetterString = SanitizePath(ModuleDefManager.GetRootPath() + "/Scripts/WriteCommit.bat ");
+                OutputData += "add_custom_command(TARGET " + Module.ModuleName + "  PRE_BUILD  \nCOMMAND \"" + VersionGetterString + "\" )\n";
             }
             Module.Processed = true;
         }
