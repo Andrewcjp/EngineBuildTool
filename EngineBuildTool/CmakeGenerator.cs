@@ -78,15 +78,16 @@ namespace EngineBuildTool
             string configflagname = "CMAKE_" + flag + "_FLAGS_" + bc.Name.ToUpper();
             return "SET(" + configflagname + " \"${" + configflagname + "} " + value + "\")\n";
         }
-        const string SDKVersion = "10.0.17763.0";
+        //const string SDKVersion = "10.0.17763.0";
+        const string SDKVersion = "10.0.18362.0";
         void GenHeader(List<BuildConfig> buildConfigs)
         {
             OutputData += "cmake_minimum_required (VERSION 3.12.1)\n";
-            OutputData += "set(CMAKE_SYSTEM_VERSION " + SDKVersion + " CACHE TYPE INTERNAL FORCE)\n";
+            //OutputData += "set(CMAKE_SYSTEM_VERSION " + SDKVersion + " CACHE TYPE INTERNAL FORCE)\n";
+            //OutputData += "set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION " + SDKVersion + " CACHE TYPE INTERNAL FORCE)\n";
             OutputData += "message(\"Detected CMAKE_SYSTEM_VERSION = '${CMAKE_SYSTEM_VERSION}'\")\n";
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
             OutputData += "Project(" + "Engine" + ")\n";
-            OutputData += "set(CMAKE_SYSTEM_VERSION " + SDKVersion + " CACHE TYPE INTERNAL FORCE)\n";
             string OutputDir = SanitizePath(ModuleDefManager.GetBinPath());
             OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"" + OutputDir + "\")\n";
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";
@@ -219,7 +220,14 @@ namespace EngineBuildTool
             }
             return result;
         }
-
+        string RelativeToABS(List<string> Paths)
+        {
+            for (int i = 0; i < Paths.Count; i++)
+            {
+                Paths[i] = SanitizePath(ModuleDefManager.GetSourcePath()) + "/" + Paths[i];
+            }
+            return ArrayStringQuotes(Paths.ToArray());
+        }
         public void ProcessModule(ModuleDef Module)
         {
             if (Module.Processed)
@@ -231,7 +239,7 @@ namespace EngineBuildTool
             Module.GatherIncludes();
             string AllSourceFiles = ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
             string ExtraSourceFiles = ArrayStringQuotes(Module.ModuleExtraFiles.ToArray());
-            string ALLFiles = AllSourceFiles + ExtraSourceFiles;
+            string ALLFiles = RelativeToABS(Module.ModuleSourceFiles) + ExtraSourceFiles;
             if (Module.ModuleOutputType == ModuleDef.ModuleType.ModuleDLL)
             {
                 OutputData += "add_library( " + Module.ModuleName + " MODULE " + ALLFiles + ")\n";
@@ -298,8 +306,10 @@ namespace EngineBuildTool
 #endif
                 Dirs.Clear();
             }
-            OutputData += "source_group(TREE \"" + SanitizePath(ModuleDefManager.GetRootPath()) + "\" FILES " + ALLFiles + ")\n";
+            OutputData += "source_group(TREE \"" + SanitizePath(ModuleDefManager.GetRootPath()) + "\" REGULAR_EXPRESSION \"*.h\" FILES " + ALLFiles + ")\n";
+
             OutputData += "set_source_files_properties(" + ExtraSourceFiles + " PROPERTIES HEADER_FILE_ONLY ON)\n";
+            OutputData += "set_target_properties( " + Module.ModuleName + " PROPERTIES GHS_NO_SOURCE_GROUP_FILE OFF)\n";
             if (Module.UseCorePCH)
             {
                 Module.PCH = ModuleDefManager.CoreModule.PCH;
@@ -376,8 +386,8 @@ namespace EngineBuildTool
         }
         public void RunCmake()
         {
-            const string Vs17Args = "\"Visual Studio 15 2017 Win64\"";
-            const string Vs15Args = "\"Visual Studio 14 2015 Win64\"";
+            const string Vs17Args = "\"Visual Studio 15 2017 Win64\"" + " -DCMAKE_SYSTEM_VERSION=" + SDKVersion;
+            const string Vs15Args = "\"Visual Studio 14 2015 Win64\"" + " -DCMAKE_SYSTEM_VERSION=" + SDKVersion;
             string CmakeArgs = "-G  " + (UseVs17 ? Vs17Args : Vs15Args) + " \"" + ModuleDefManager.GetSourcePath() + "\"";
 
             System.Diagnostics.Process process = new System.Diagnostics.Process();
