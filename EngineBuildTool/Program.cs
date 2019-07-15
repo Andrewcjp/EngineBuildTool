@@ -7,6 +7,8 @@ namespace EngineBuildTool
     {
         static void Main(string[] args)
         {
+            System.Diagnostics.Stopwatch Time = new System.Diagnostics.Stopwatch();
+            Time.Start();
             for (int i = 0; i < args.Length; i++)
             {
                 args[i] = args[i].ToLower();
@@ -49,9 +51,23 @@ namespace EngineBuildTool
             {
                 manager.Run();
             }
-
-            Console.WriteLine("Press any key....");
-            Console.ReadKey();
+            Time.Stop();
+            Console.WriteLine("Build tool finished in " + Time.ElapsedMilliseconds + "ms ");
+            Console.WriteLine("Closing In 5s Press any key to abort");
+            Time.Restart();
+            float Starttime = 5; 
+            while (Time.ElapsedMilliseconds < (Starttime * 1000))
+            {
+                if (Console.KeyAvailable) 
+                {
+                    Console.WriteLine("\nAborted! Press Any Key To exit");
+                    Console.ReadKey(true);
+                    Console.ReadKey(true);
+                    break;
+                }
+                Console.Write("\rClosing In " + (Starttime - Time.Elapsed.Seconds) + "s ");
+            }
+            Time.Stop();
         }
 
     }

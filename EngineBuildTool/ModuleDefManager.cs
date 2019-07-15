@@ -154,11 +154,18 @@ namespace EngineBuildTool
                     ModuleNames.Remove(s);
                     Console.WriteLine("Excluded Module " + s);
                 }
+            } 
+            const string ModuleEnd = "Module";
+            for (int i = 0; i < ModuleNames.Count; i++)
+            {
+                if (ModuleNames[i].EndsWith(ModuleEnd))
+                {
+                    ModuleNames[i] = ModuleNames[i].Remove(ModuleNames[i].Length - ModuleEnd.Length, ModuleEnd.Length);
+                }
             }
-
             InitObjectsOfType<ModuleDef>(ModuleNames, ref ModuleObjects, CompiledAssembly, ModuleSufix);
             ALLModules.AddRange(ModuleObjects);
-            
+
         }
 
         void InitObjectsOfType<T>(List<string> Names, ref List<T> ConstructedObjects, Assembly CompiledAssembly, string Sufix = "")
@@ -183,7 +190,7 @@ namespace EngineBuildTool
 
         public static ModuleDef CoreModule = null;
         public static List<BuildConfig> CurrentConfigs = new List<BuildConfig>();
-
+        const bool LogDebug = true;
         public void Run()
         {
             LogStage("Generate Stage");
@@ -194,6 +201,13 @@ namespace EngineBuildTool
             //core module Is Special!
             CoreModule = TargetRulesObject.GetCoreModule();
             ALLModules.Add(CoreModule);
+            if (LogDebug)
+            {
+                foreach (ModuleDef M in ALLModules)
+                {
+                    Console.WriteLine("Found module " + M.ModuleName);
+                }
+            }
             Projectdata.LibSearchPaths.AddRange(TargetRulesObject.LibSearchPaths);
             PreProcessModules();
             Projectdata.PopulateLibs();
@@ -241,7 +255,7 @@ namespace EngineBuildTool
         }
 
         void PreProcessModules()
-        {            
+        {
             InitObjectsOfType(CoreModule.ThirdPartyModules, ref CoreModule.ExternalModules, CompiledAssembly);
             CoreModule.PostInit(TargetRulesObject);
             Projectdata.LibSearchPaths.AddRange(CoreModule.AdditonalLibSearchPaths);
