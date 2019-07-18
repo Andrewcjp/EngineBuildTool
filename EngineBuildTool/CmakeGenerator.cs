@@ -135,8 +135,10 @@ namespace EngineBuildTool
             }
             {//Header tool project
                 OutputData += "add_custom_target(" + HeaderToolTarget + " DEPENDS  always_rebuild)\n";
-                string headertoolString = SanitizePath(ModuleDefManager.GetSourcePath() + "/EngineHeaderTool.exe ");
-                OutputData += "add_custom_command(TARGET " + HeaderToolTarget + "  PRE_BUILD  \nCOMMAND \"" + headertoolString + "\" )\n";
+                string headertoolString = SanitizePath(ModuleDefManager.GetSourcePath() + "/EngineHeaderTool.exe \" ");
+                Console.WriteLine("Game Module is " + CoreModule.GameModuleName);
+                OutputData += "add_custom_command(TARGET " + HeaderToolTarget + "  PRE_BUILD  \nCOMMAND \"" + headertoolString +
+                    " -Name " + CoreModule.GameModuleName + " )\n";
                 OutputData += "set_target_properties(" + HeaderToolTarget + " PROPERTIES FOLDER " + "Build/" + ")\n";
             }
             if (UseAllBuildWorkAround)
@@ -146,7 +148,7 @@ namespace EngineBuildTool
                 {
                     OutputData += "add_dependencies(" + BuildAllTarget + " " + HeaderToolTarget + ")\n";
                 }
-                foreach (ModuleDef M in Modules)
+                foreach (ModuleDef M in Modules) 
                 {
                     OutputData += "add_dependencies(" + BuildAllTarget + " " + M.ModuleName + ")\n";
                 }

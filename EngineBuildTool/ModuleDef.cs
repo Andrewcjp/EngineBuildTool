@@ -53,6 +53,7 @@ namespace EngineBuildTool
         public List<string> SystemLibNames = new List<string>();
         public ModuleDef()
         { }
+        public string GameModuleName = "TestGame";
         public void PostInit(TargetRules r)
         {
             PreProcessorDefines.Add(ModuleName.ToUpper() + "_EXPORT");
@@ -75,7 +76,7 @@ namespace EngineBuildTool
                 DLLs.AddRange(EMD.DynamaicLibs);
                 LibNameRefs.AddRange(EMD.StaticLibs);
                 AdditonalLibSearchPaths.AddRange(EMD.LibrarySearchPaths);
-                SystemLibNames.AddRange(EMD.SystemLibNames);               
+                SystemLibNames.AddRange(EMD.SystemLibNames);
             }
             foreach (string s in SystemLibNames)
             {
