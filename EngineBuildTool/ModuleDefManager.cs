@@ -17,8 +17,8 @@ namespace EngineBuildTool
         const string BuildCsString = ".Build";
         const string TargetCsString = ".Target";
         List<string> ModuleNames = new List<string>();
-        TargetRules TargetRulesObject;
-        List<ModuleDef> ModuleObjects = new List<ModuleDef>();
+        public static TargetRules TargetRulesObject;
+        List<ModuleDef> NonCoreModuleObjects = new List<ModuleDef>();
         const string DefaultTargetRulesName = "CoreTargetRules";
         public string TargetRulesName = "";
         List<ModuleDef> ALLModules = new List<ModuleDef>();
@@ -66,6 +66,7 @@ namespace EngineBuildTool
         {
             SourceDir = GetSourcePath();
             Projectdata = new Library();
+            SettingCache.Load();
         }
 
         void LogStage(string stagename)
@@ -146,7 +147,9 @@ namespace EngineBuildTool
                 {
                     Constructor.Invoke(TargetRulesObject, new object[] { });
                 }
+                TargetRulesObject.Resolve();
             }
+            Console.WriteLine("Targeting Windows 10 Version " + TargetRulesObject.WindowTenVersionTarget + " (" + TargetRulesObject.GetWinSDKVer() + ")");
             foreach (string s in TargetRulesObject.ModuleExcludeList)
             {
                 if (ModuleNames.Contains(s))
@@ -154,7 +157,7 @@ namespace EngineBuildTool
                     ModuleNames.Remove(s);
                     Console.WriteLine("Excluded Module " + s);
                 }
-            } 
+            }
             const string ModuleEnd = "Module";
             for (int i = 0; i < ModuleNames.Count; i++)
             {
@@ -163,9 +166,8 @@ namespace EngineBuildTool
                     ModuleNames[i] = ModuleNames[i].Remove(ModuleNames[i].Length - ModuleEnd.Length, ModuleEnd.Length);
                 }
             }
-            InitObjectsOfType<ModuleDef>(ModuleNames, ref ModuleObjects, CompiledAssembly, ModuleSufix);
-            ALLModules.AddRange(ModuleObjects);
-
+            InitObjectsOfType<ModuleDef>(ModuleNames, ref NonCoreModuleObjects, CompiledAssembly, ModuleSufix);
+            ALLModules.AddRange(NonCoreModuleObjects);
         }
 
         void InitObjectsOfType<T>(List<string> Names, ref List<T> ConstructedObjects, Assembly CompiledAssembly, string Sufix = "")
@@ -178,12 +180,24 @@ namespace EngineBuildTool
                 {
                     T RulesObject;
                     RulesObject = (T)FormatterServices.GetUninitializedObject(ObjectType);
-                    ConstructorInfo Constructor = ObjectType.GetConstructor(Type.EmptyTypes);
-                    if (Constructor != null)
+                    ConstructorInfo Constructor;
+                    if (typeof(T) == typeof(ModuleDef))
                     {
-                        Constructor.Invoke(RulesObject, new object[] { });
-                        ConstructedObjects.Add(RulesObject);
+                        Constructor = ObjectType.GetConstructor(new Type[] { typeof(TargetRules) });
+                        if (Constructor != null)
+                        {
+                            Constructor.Invoke(RulesObject, new object[] { TargetRulesObject });
+                        }
                     }
+                    else
+                    {
+                        Constructor = ObjectType.GetConstructor(new Type[] { });
+                        if (Constructor != null)
+                        {
+                            Constructor.Invoke(RulesObject, new object[] {});
+                        }
+                    } 
+                    ConstructedObjects.Add(RulesObject);
                 }
             }
         }
@@ -200,6 +214,13 @@ namespace EngineBuildTool
             CmakeGenerator gen = new CmakeGenerator();
             //core module Is Special!
             CoreModule = TargetRulesObject.GetCoreModule();
+            for (int i = ALLModules.Count - 1; i >= 0; i--)
+            {
+                if (ALLModules[i].IsGameModule && ALLModules[i].ModuleName != CoreModule.GameModuleName)
+                {
+                    ALLModules.RemoveAt(i);
+                }
+            }
             ALLModules.Add(CoreModule);
             if (LogDebug)
             {
@@ -213,15 +234,21 @@ namespace EngineBuildTool
             Projectdata.PopulateLibs();
             ProcessModules();
             LogStage("CMake Stage");
+            if (!SettingCache.IsCacheValid())
+            {
+                gen.ClearCmakeCache();
+                Console.WriteLine("CMake cache Is Invalid, clearing...");
+            }
             Console.WriteLine("Running CMake");
-            gen.GenerateList(ModuleObjects, CoreModule, CurrentConfigs);
+            gen.GenerateList(ALLModules, CoreModule, CurrentConfigs);
             gen.RunCmake();
             LogStage("Post Gen");
-            gen.RunPostStep(ModuleObjects, CoreModule);
+            gen.RunPostStep(NonCoreModuleObjects, CoreModule);
             LogStage("Copy DLLs");
             FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(), GetIntermediateDir() + "\\Engine.sln");
             Projectdata.CopyDllsToConfig(CurrentConfigs, ALLModules);
             LinkDirectiories();
+            SettingCache.Save();
             LogStage("Complete");
 
         }
@@ -259,7 +286,7 @@ namespace EngineBuildTool
             InitObjectsOfType(CoreModule.ThirdPartyModules, ref CoreModule.ExternalModules, CompiledAssembly);
             CoreModule.PostInit(TargetRulesObject);
             Projectdata.LibSearchPaths.AddRange(CoreModule.AdditonalLibSearchPaths);
-            foreach (ModuleDef def in ModuleObjects)
+            foreach (ModuleDef def in NonCoreModuleObjects)
             {
                 InitObjectsOfType(def.ThirdPartyModules, ref def.ExternalModules, CompiledAssembly);
                 def.PostInit(TargetRulesObject);
@@ -280,7 +307,7 @@ namespace EngineBuildTool
 
         void ProcessModules()
         {
-            foreach (ModuleDef def in ModuleObjects)
+            foreach (ModuleDef def in NonCoreModuleObjects)
             {
                 Projectdata.AddLibsForModule(def);
             }

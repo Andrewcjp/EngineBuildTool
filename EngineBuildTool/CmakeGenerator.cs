@@ -79,12 +79,13 @@ namespace EngineBuildTool
             return "SET(" + configflagname + " \"${" + configflagname + "} " + value + "\")\n";
         }
         //const string SDKVersion = "10.0.17763.0";
-        const string SDKVersion = "10.0.18362.0";
+        // const string SDKVersion = "10.0.18362.0";
         void GenHeader(List<BuildConfig> buildConfigs)
         {
+            string SDKVersion = ModuleDefManager.TargetRulesObject.GetWinSDKVer();
             OutputData += "cmake_minimum_required (VERSION 3.12.1)\n";
-            //OutputData += "set(CMAKE_SYSTEM_VERSION " + SDKVersion + " CACHE TYPE INTERNAL FORCE)\n";
-            //OutputData += "set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION " + SDKVersion + " CACHE TYPE INTERNAL FORCE)\n";
+            //OutputData += "set(CMAKE_SYSTEM_VERSION \"" + SDKVersion + "\" CACHE TYPE INTERNAL FORCE)\n";
+            //OutputData += "set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION \"" + SDKVersion + "\" CACHE TYPE INTERNAL FORCE)\n";
             OutputData += "message(\"Detected CMAKE_SYSTEM_VERSION = '${CMAKE_SYSTEM_VERSION}'\")\n";
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
             OutputData += "Project(" + "Engine" + ")\n";
@@ -148,7 +149,7 @@ namespace EngineBuildTool
                 {
                     OutputData += "add_dependencies(" + BuildAllTarget + " " + HeaderToolTarget + ")\n";
                 }
-                foreach (ModuleDef M in Modules) 
+                foreach (ModuleDef M in Modules)
                 {
                     OutputData += "add_dependencies(" + BuildAllTarget + " " + M.ModuleName + ")\n";
                 }
@@ -171,6 +172,7 @@ namespace EngineBuildTool
             foreach (ModuleDef m in Modules)
             {
                 EnableUnityBuild(m);
+                ProcessFile(m);
             }
             if (UseAllBuildWorkAround)
             {
@@ -292,7 +294,7 @@ namespace EngineBuildTool
             {
                 OutputData += "target_link_libraries(" + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleDepends.ToArray()) + ")\n";
             }
-
+            ProcessNuGetPacks(Module);
             List<string> Dirs = new List<string>();
             Module.GetIncludeDirs(ref Dirs);
             if (Module != ModuleDefManager.CoreModule)
@@ -388,8 +390,9 @@ namespace EngineBuildTool
         }
         public void RunCmake()
         {
-            const string Vs17Args = "\"Visual Studio 15 2017 Win64\"" + " -DCMAKE_SYSTEM_VERSION=" + SDKVersion;
-            const string Vs15Args = "\"Visual Studio 14 2015 Win64\"" + " -DCMAKE_SYSTEM_VERSION=" + SDKVersion;
+            string SDKVersion = ModuleDefManager.TargetRulesObject.GetWinSDKVer();
+            string Vs17Args = "\"Visual Studio 15 2017 Win64\"" + " -DCMAKE_SYSTEM_VERSION=" + SDKVersion + " -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=" + SDKVersion;
+            string Vs15Args = "\"Visual Studio 14 2015 Win64\"" + " -DCMAKE_SYSTEM_VERSION=" + SDKVersion;
             string CmakeArgs = "-G  " + (UseVs17 ? Vs17Args : Vs15Args) + " \"" + ModuleDefManager.GetSourcePath() + "\"";
 
             System.Diagnostics.Process process = new System.Diagnostics.Process();
@@ -496,7 +499,22 @@ namespace EngineBuildTool
 
             doc.Save(VxprojPath);
         }
+        void ProcessFile(ModuleDef md)
+        {
+            string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + md.ModuleName + ".vcxproj";
+            if (!File.Exists(VxprojPath))
+            {
+                Console.WriteLine("Error: No project file!");
+                return;
+            }
+            XmlDocument doc = new XmlDocument();
+            doc.Load(VxprojPath);
+            var nsmgr = new XmlNamespaceManager(doc.NameTable);
+            nsmgr.AddNamespace("a", "http://schemas.microsoft.com/developer/msbuild/2003");
+            PostProcessStepAddNuGet(doc, nsmgr, md);
 
+            doc.Save(VxprojPath);
+        }
         private static void ProcessExpections(XmlDocument doc, XmlNamespaceManager nsmgr, ModuleDef md)
         {
             List<string> Excludes = new List<string>();
@@ -521,6 +539,55 @@ namespace EngineBuildTool
                         }
                     }
                 }
+            }
+        }
+
+        void ProcessNuGetPacks(ModuleDef M)
+        {
+            if (M.NuGetPackages.Count == 0)
+            {
+                return;
+            }
+            OutputData += "find_program(NUGET nuget)\nif (NOT NUGET) \n   message(FATAL \"CMake could not find the nuget command line tool. Please install it!\")\nendif()\n";
+            foreach (string Pack in M.NuGetPackages)
+            {
+                //M.ModuleSourceFiles
+                //OutputData += "execute_process(COMMAND NUGET install " + Pack + " -OutputDirectory " + SanitizePath(ModuleDefManager.GetIntermediateDir() + "\\packages")+
+                //    "  \n WORKING_DIRECTORY " + SanitizePath(ModuleDefManager.GetRootPath() + "/Scripts/") + " )\n";
+            }
+        }
+        void PostProcessStepAddNuGet(XmlDocument doc, XmlNamespaceManager nsmgr, ModuleDef md)
+        {
+            if (md.NuGetPackages.Count == 0)
+            {
+                return;
+            }
+            foreach (string Pack in md.NuGetPackages)
+            {
+              //  string data = "<Import Project=\"packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets\" Condition=\"Exists('packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets')\" />";
+                XmlNodeList cl = doc.SelectNodes("//a:ImportGroup", nsmgr);
+                //  foreach (XmlNode nn in cl)
+                {
+                    XmlNode nn = cl[cl.Count - 1];
+                    XmlNode value = doc.CreateNode(XmlNodeType.Element, "Import", doc.DocumentElement.NamespaceURI);
+                    XmlAttribute A = doc.CreateAttribute("Project");
+                    A.Value = "packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets";// Condition=\"Exists('packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets')\";
+                    value.Attributes.Append(A);
+                    XmlAttribute B = doc.CreateAttribute("Condition");
+                    B.Value = "Exists('packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets')";
+                    value.Attributes.Append(B);
+                    //  value.InnerText = "true";//<IncludeInUnityFile>true</IncludeInUnityFile>
+                    nn.AppendChild(value);
+
+                }
+            }
+        }
+        public void ClearCmakeCache()
+        {
+            string CMakeDir = ModuleDefManager.GetIntermediateDir() + "\\CMakeFiles";
+            if (Directory.Exists(CMakeDir))
+            {
+                Directory.Delete(CMakeDir, true);
             }
         }
     }

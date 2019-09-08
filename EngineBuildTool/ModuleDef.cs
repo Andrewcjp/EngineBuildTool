@@ -51,7 +51,8 @@ namespace EngineBuildTool
         public List<ExternalModuleDef> ExternalModules = new List<ExternalModuleDef>();
         public List<LibNameRef> DLLs = new List<LibNameRef>();
         public List<string> SystemLibNames = new List<string>();
-        public ModuleDef()
+        public List<string> NuGetPackages = new List<string>();
+        public ModuleDef(TargetRules Rules)
         { }
         public string GameModuleName = "TestGame";
         public void PostInit(TargetRules r)
@@ -107,6 +108,7 @@ namespace EngineBuildTool
             GetFiles("*.hpp");
             GetFiles("*.c");
             GetFiles("*.cpp");
+            GetFiles("*.rc");
             GetFiles("*.cs", ModuleDefManager.GetSourcePath() + "\\" + SourceFileSearchDir, true);
             if (IsCoreModule)
             {

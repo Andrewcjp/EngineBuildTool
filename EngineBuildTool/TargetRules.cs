@@ -78,5 +78,37 @@ namespace EngineBuildTool
         }
         public List<LibSearchPath> LibSearchPaths = new List<LibSearchPath>();
         public List<string> GlobalDefines = new List<string>();
+        //windows platform
+        public string WindowTenVersionTarget = "1903";
+        string WindowsApiVersion = "";
+        public string GetWinSDKVer()
+        {
+            return WindowsApiVersion;
+        }
+        public void Resolve()
+        {
+            int VersionNum = 0;
+            if (!int.TryParse(WindowTenVersionTarget, out VersionNum))
+            {
+                //default!
+                WindowTenVersionTarget = "1903";
+                VersionNum = 1903;
+            }
+            SettingCache.SetWinSdk(VersionNum);
+            if (WindowsApiVersion.Length == 0)
+            {
+                WindowsApiVersion = PlatformData.GetWinSdkVersion(WindowTenVersionTarget);
+            }
+            if (Win_SupportsRT())
+            {
+                GlobalDefines.Add("PLATFORM_RT");
+            }
+        }
+        public bool Win_SupportsRT() 
+        {
+            int VersionNum = 0;
+            int.TryParse(WindowTenVersionTarget, out VersionNum);
+            return (VersionNum >= 1809);
+        }
     }
 }
