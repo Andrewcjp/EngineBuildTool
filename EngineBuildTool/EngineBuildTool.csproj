@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BuildConfiguration.cs" />
+    <Compile Include="CmakeCSharpProject.cs" />
     <Compile Include="CmakeGenerator.cs" />
     <Compile Include="ExternalModuleDef.cs" />
     <Compile Include="FileUtils.cs" />

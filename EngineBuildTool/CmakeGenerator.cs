@@ -84,11 +84,9 @@ namespace EngineBuildTool
         {
             string SDKVersion = ModuleDefManager.TargetRulesObject.GetWinSDKVer();
             OutputData += "cmake_minimum_required (VERSION 3.12.1)\n";
-            //OutputData += "set(CMAKE_SYSTEM_VERSION \"" + SDKVersion + "\" CACHE TYPE INTERNAL FORCE)\n";
-            //OutputData += "set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION \"" + SDKVersion + "\" CACHE TYPE INTERNAL FORCE)\n";
             OutputData += "message(\"Detected CMAKE_SYSTEM_VERSION = '${CMAKE_SYSTEM_VERSION}'\")\n";
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
-            OutputData += "Project(" + "Engine" + ")\n";
+            OutputData += "Project(" + "Engine" + " CSharp C CXX )\n";
             string OutputDir = SanitizePath(ModuleDefManager.GetBinPath());
             OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"" + OutputDir + "\")\n";
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";
@@ -189,7 +187,7 @@ namespace EngineBuildTool
             string result = string.Join(" ", array);
             return result;
         }
-        static string ArrayStringQuotes(string[] array)
+        public static string ArrayStringQuotes(string[] array)
         {
             // Use string Join to concatenate the string elements.
             string result = "";
@@ -241,6 +239,11 @@ namespace EngineBuildTool
             OutputData += "#-------------Module Start " + Module.ModuleName + "----------------\n";
             Module.GatherSourceFiles();
             Module.GatherIncludes();
+            if (Module.LaunguageType == ModuleDef.ProjectType.CSharp)
+            {
+                OutputData += CmakeCSharpProject.GetModule(Module);
+                return;
+            }
             string AllSourceFiles = ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
             string ExtraSourceFiles = ArrayStringQuotes(Module.ModuleExtraFiles.ToArray());
             string ALLFiles = RelativeToABS(Module.ModuleSourceFiles) + ExtraSourceFiles;
@@ -290,6 +293,10 @@ namespace EngineBuildTool
             {
                 OutputData += "add_dependencies(" + Module.ModuleName + " " + HeaderToolTarget + ")\n";
             }
+            if (Module.LaunguageType == ModuleDef.ProjectType.ManagedCPP)
+            {
+                //Module.ModuleDepends.Add("CSharpCore");
+            }
             if (Module.ModuleDepends.Count != 0)
             {
                 OutputData += "target_link_libraries(" + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleDepends.ToArray()) + ")\n";
@@ -334,12 +341,14 @@ namespace EngineBuildTool
                 }
 #endif
                 OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_FLAGS \"" + SharedHeaderData + pchstring + "\" )\n";
+
                 if (!Module.UseCorePCH)
                 {
                     OutputData += "SET_SOURCE_FILES_PROPERTIES(\"" + Module.SourceFileSearchDir + "/" + Module.PCH + ".cpp\" COMPILE_FLAGS \"/Yc" + PCHString + ".h\" )\n";
                 }
 
             }
+
             if (CanModuleUnity(Module))
             {
                 Module.PreProcessorDefines.Add("WITH_UNITY");
@@ -363,6 +372,18 @@ namespace EngineBuildTool
             {
                 string VersionGetterString = SanitizePath(ModuleDefManager.GetRootPath() + "/Scripts/WriteCommit.bat ");
                 OutputData += "add_custom_command(TARGET " + Module.ModuleName + "  PRE_BUILD  \nCOMMAND \"" + VersionGetterString + "\" )\n";
+            }
+            if (Module.LaunguageType == ModuleDef.ProjectType.ManagedCPP)
+            {
+                //Imported_common_language_runtime
+                OutputData += "set_property(TARGET " + Module.ModuleName + " PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION \"v4.6.1\")\n";
+                OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMMON_LANGUAGE_RUNTIME \"\")\n";
+
+                //OutputData += "SET (MANAGEDFLAGS \"${CMAKE_CXX_FLAGS}\")\n";
+                //OutputData += "SET (MANAGEDFLAGS_D \"${CMAKE_CXX_FLAGS_DEBUG}\")\n";
+                //OutputData += "STRING(REPLACE \"/EHsc\" \"/EHa\" MANAGEDFLAGS ${MANAGEDFLAGS}) \n STRING(REPLACE \"/RTC1\" \"\" MANAGEDFLAGS_D ${MANAGEDFLAGS_D})\n";
+                //OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_FLAGS \"${CMAKE_CXX_FLAGS}" + "/clr" + "\" )\n";
+                OutputData += "set_property(TARGET " + Module.ModuleName + " PROPERTY VS_DOTNET_REFERENCES  \"System\" "+ArrayStringQuotes(Module.NetReferences.ToArray())+" )\n";
             }
             Module.Processed = true;
         }
@@ -391,8 +412,9 @@ namespace EngineBuildTool
         public void RunCmake()
         {
             string SDKVersion = ModuleDefManager.TargetRulesObject.GetWinSDKVer();
-            string Vs17Args = "\"Visual Studio 15 2017 Win64\"" + " -DCMAKE_SYSTEM_VERSION=" + SDKVersion + " -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=" + SDKVersion;
-            string Vs15Args = "\"Visual Studio 14 2015 Win64\"" + " -DCMAKE_SYSTEM_VERSION=" + SDKVersion;
+            string Arg = " -DCMAKE_SYSTEM_VERSION=" + SDKVersion + " -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=" + SDKVersion;
+            string Vs17Args = "\"Visual Studio 15 2017 Win64\"" + Arg;
+            string Vs15Args = "\"Visual Studio 14 2015 Win64\"" + Arg;
             string CmakeArgs = "-G  " + (UseVs17 ? Vs17Args : Vs15Args) + " \"" + ModuleDefManager.GetSourcePath() + "\"";
 
             System.Diagnostics.Process process = new System.Diagnostics.Process();
@@ -564,7 +586,7 @@ namespace EngineBuildTool
             }
             foreach (string Pack in md.NuGetPackages)
             {
-              //  string data = "<Import Project=\"packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets\" Condition=\"Exists('packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets')\" />";
+                //  string data = "<Import Project=\"packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets\" Condition=\"Exists('packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets')\" />";
                 XmlNodeList cl = doc.SelectNodes("//a:ImportGroup", nsmgr);
                 //  foreach (XmlNode nn in cl)
                 {

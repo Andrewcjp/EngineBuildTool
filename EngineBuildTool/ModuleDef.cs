@@ -23,6 +23,8 @@ namespace EngineBuildTool
     {
         public string ModuleName = "";
         public enum ModuleType { EXE, ModuleDLL, DLL, LIB };
+        public enum ProjectType { CPP,ManagedCPP,CSharp };
+        public ProjectType LaunguageType = ProjectType.CPP;
         public ModuleType ModuleOutputType = ModuleType.ModuleDLL;
         public List<string> ModuleDepends = new List<string>();
         public string SolutionFolderPath = "";
@@ -52,6 +54,7 @@ namespace EngineBuildTool
         public List<LibNameRef> DLLs = new List<LibNameRef>();
         public List<string> SystemLibNames = new List<string>();
         public List<string> NuGetPackages = new List<string>();
+        public List<string> NetReferences = new List<string>();
         public ModuleDef(TargetRules Rules)
         { }
         public string GameModuleName = "TestGame";
@@ -69,6 +72,7 @@ namespace EngineBuildTool
             string path = "//Intermediate//Generated//" + ModuleName + "//";
             IncludeDirectories.Add(path);
             IncludeDirectories.Add("//Source//" + ModuleName + "//");
+            IncludeDirectories.Add("//Source//" + SourceFileSearchDir + "//");
             foreach (ExternalModuleDef EMD in ExternalModules)
             {
                 EMD.Build();
@@ -97,23 +101,34 @@ namespace EngineBuildTool
                 List[i] = CmakeGenerator.SanitizePath(List[i]);
             }
         }
-
+        bool IsBuildfile(string s)
+        {
+            return s.Contains("Build.cs");
+        }
         public void GatherSourceFiles()
         {
             if (ModuleSourceFiles.Count != 0)
             {
                 return;
             }
-            GetFiles("*.h");
-            GetFiles("*.hpp");
-            GetFiles("*.c");
-            GetFiles("*.cpp");
-            GetFiles("*.rc");
-            GetFiles("*.cs", ModuleDefManager.GetSourcePath() + "\\" + SourceFileSearchDir, true);
-            if (IsCoreModule)
+            if (LaunguageType == ProjectType.CSharp)
             {
-                GetFiles("*.*", ModuleDefManager.GetRootPath() + "\\Shaders", false);
-                ModuleExtraFiles.Add(CmakeGenerator.SanitizePath(ModuleDefManager.GetSourcePath() + "\\Core.Target.cs"));
+                GetFiles("*.cs");
+                ModuleSourceFiles.RemoveAll(IsBuildfile);
+            }
+            else
+            {
+                GetFiles("*.h");
+                GetFiles("*.hpp");
+                GetFiles("*.c");
+                GetFiles("*.cpp");
+                GetFiles("*.rc");
+                GetFiles("*.cs", ModuleDefManager.GetSourcePath() + "\\" + SourceFileSearchDir, true);
+                if (IsCoreModule)
+                {
+                    GetFiles("*.*", ModuleDefManager.GetRootPath() + "\\Shaders", false);
+                    ModuleExtraFiles.Add(CmakeGenerator.SanitizePath(ModuleDefManager.GetSourcePath() + "\\Core.Target.cs"));
+                }
             }
         }
         void GetFiles(string Type)
