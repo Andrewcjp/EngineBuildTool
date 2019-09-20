@@ -47,19 +47,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Build Files Base\GeneratorBase.cs" />
+    <Compile Include="Build Files Base\PlatformDefinition.cs" />
     <Compile Include="BuildConfiguration.cs" />
-    <Compile Include="CmakeCSharpProject.cs" />
-    <Compile Include="CmakeGenerator.cs" />
-    <Compile Include="ExternalModuleDef.cs" />
-    <Compile Include="FileUtils.cs" />
+    <Compile Include="Cmake\CmakeCSharpProject.cs" />
+    <Compile Include="Cmake\CmakeGenerator.cs" />
+    <Compile Include="Build Files Base\ExternalModuleDef.cs" />
+    <Compile Include="Utils\FileUtils.cs" />
     <Compile Include="Library.cs" />
-    <Compile Include="ModuleDef.cs" />
+    <Compile Include="Build Files Base\ModuleDef.cs" />
     <Compile Include="ModuleDefManager.cs" />
     <Compile Include="PlatformData.cs" />
+    <Compile Include="Premake\PreMakeGenerator.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SettingCache.cs" />
-    <Compile Include="TargetRules.cs" />
+    <Compile Include="Build Files Base\TargetRules.cs" />
+    <Compile Include="Utils\StringUtils.cs" />
+    <Compile Include="VisualStudioProjectEditor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

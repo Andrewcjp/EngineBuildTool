@@ -23,7 +23,7 @@ namespace EngineBuildTool
     {
         public string ModuleName = "";
         public enum ModuleType { EXE, ModuleDLL, DLL, LIB };
-        public enum ProjectType { CPP,ManagedCPP,CSharp };
+        public enum ProjectType { CPP,ManagedCPP,CSharp };        
         public ProjectType LaunguageType = ProjectType.CPP;
         public ModuleType ModuleOutputType = ModuleType.ModuleDLL;
         public List<string> ModuleDepends = new List<string>();
@@ -55,6 +55,7 @@ namespace EngineBuildTool
         public List<string> SystemLibNames = new List<string>();
         public List<string> NuGetPackages = new List<string>();
         public List<string> NetReferences = new List<string>();
+        public List<string> UnsupportedPlatforms = new List<string>();
         public ModuleDef(TargetRules Rules)
         { }
         public string GameModuleName = "TestGame";
@@ -98,7 +99,7 @@ namespace EngineBuildTool
             List.AddRange(IncludeDirectories);
             for (int i = 0; i < List.Count; i++)
             {
-                List[i] = CmakeGenerator.SanitizePath(List[i]);
+                List[i] = StringUtils.SanitizePath(List[i]);
             }
         }
         bool IsBuildfile(string s)
@@ -127,7 +128,7 @@ namespace EngineBuildTool
                 if (IsCoreModule)
                 {
                     GetFiles("*.*", ModuleDefManager.GetRootPath() + "\\Shaders", false);
-                    ModuleExtraFiles.Add(CmakeGenerator.SanitizePath(ModuleDefManager.GetSourcePath() + "\\Core.Target.cs"));
+                    ModuleExtraFiles.Add(StringUtils.SanitizePath(ModuleDefManager.GetSourcePath() + "\\Core.Target.cs"));
                 }
             }
         }
@@ -144,7 +145,7 @@ namespace EngineBuildTool
                 for (int i = 0; i < files.Length; i++)
                 {
                     files[i] = files[i].Replace(ModuleDefManager.GetSourcePath() + "\\", "");
-                    files[i] = CmakeGenerator.SanitizePath(files[i]);
+                    files[i] = StringUtils.SanitizePath(files[i]);
                 }
                 if (Source)
                 {
@@ -164,7 +165,7 @@ namespace EngineBuildTool
         {
             for (int i = 0; i < IncludeDirectories.Count; i++)
             {
-                IncludeDirectories[i] = CmakeGenerator.SanitizePath(ModuleDefManager.GetRootPath() + IncludeDirectories[i]);
+                IncludeDirectories[i] = StringUtils.SanitizePath(ModuleDefManager.GetRootPath() + IncludeDirectories[i]);
             }
         }
 

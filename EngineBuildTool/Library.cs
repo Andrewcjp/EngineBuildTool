@@ -129,7 +129,7 @@ namespace EngineBuildTool
             {
                 LibRef Newref = new LibRef();
                 Newref.BuildType = BCToString(buildconfig);
-                Newref.Path = CmakeGenerator.SanitizePath(s);
+                Newref.Path = StringUtils.SanitizePath(s);
                 Newref.Name = Path.GetFileNameWithoutExtension(s);
                 Newref.BuildCFg = buildconfig;
                 if (DLL)

@@ -8,22 +8,13 @@ using System.Xml;
 
 namespace EngineBuildTool
 {
-    class CmakeGenerator
+    class CmakeGenerator: GeneratorBase
     {
         bool PreBuild_HeaderTool = false;
         bool UseAllBuildWorkAround = true;
         const bool EnableFastLink = true;
         string OutputData = "";
-        public static string SanitizePath(string input)
-        {
-            input = input.Replace("\\", "/");
-            input = input.Replace("//", "/");
-            return input;
-        }
-        public static string SanitizePathToDoubleBack(string input)
-        {
-            return input.Replace("/", "\\");
-        }
+
         string GetConfigNames(List<BuildConfig> Configs, bool DebugOnly = false)
         {
             string output = "";
@@ -87,7 +78,7 @@ namespace EngineBuildTool
             OutputData += "message(\"Detected CMAKE_SYSTEM_VERSION = '${CMAKE_SYSTEM_VERSION}'\")\n";
             OutputData += "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
             OutputData += "Project(" + "Engine" + " CSharp C CXX )\n";
-            string OutputDir = SanitizePath(ModuleDefManager.GetBinPath());
+            string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath());
             OutputData += "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"" + OutputDir + "\")\n";
             OutputData += "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";
             OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";///NODEFAULTLIB:MSVCRT
@@ -123,7 +114,7 @@ namespace EngineBuildTool
         }
         const string BuildAllTarget = "BuildAll";
         const string HeaderToolTarget = "HeaderTool";
-        public void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
+        public override void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
         {
             GenHeader(buildConfigs);
             ProcessModule(CoreModule);
@@ -134,7 +125,7 @@ namespace EngineBuildTool
             }
             {//Header tool project
                 OutputData += "add_custom_target(" + HeaderToolTarget + " DEPENDS  always_rebuild)\n";
-                string headertoolString = SanitizePath(ModuleDefManager.GetSourcePath() + "/EngineHeaderTool.exe \" ");
+                string headertoolString = StringUtils.SanitizePath(ModuleDefManager.GetSourcePath() + "/EngineHeaderTool.exe \" ");
                 Console.WriteLine("Game Module is " + CoreModule.GameModuleName);
                 OutputData += "add_custom_command(TARGET " + HeaderToolTarget + "  PRE_BUILD  \nCOMMAND \"" + headertoolString +
                     " -Name " + CoreModule.GameModuleName + " )\n";
@@ -164,72 +155,24 @@ namespace EngineBuildTool
             WriteToFile(ModuleDefManager.GetSourcePath());
 
         }
-        public void RunPostStep(List<ModuleDef> Modules, ModuleDef CoreModule)
+        public override void RunPostStep(List<ModuleDef> Modules, ModuleDef CoreModule)
         {
-            EnableUnityBuild(CoreModule);
+            VisualStudioProjectEditor.EnableUnityBuild(CoreModule);
             foreach (ModuleDef m in Modules)
             {
-                EnableUnityBuild(m);
-                ProcessFile(m);
+                VisualStudioProjectEditor.EnableUnityBuild(m);
+                VisualStudioProjectEditor.ProcessFile(m);
             }
             if (UseAllBuildWorkAround)
             {
                 foreach (BuildConfig bc in ModuleDefManager.CurrentConfigs)
                 {
-                    string path = SanitizePath(ModuleDefManager.GetBinPath() + "\\" + bc.Name + "\\");
-                    SetTargetOutput(BuildAllTarget, path, CoreModule.OutputObjectName, bc.Name);
+                    string path = StringUtils.SanitizePath(ModuleDefManager.GetBinPath() + "\\" + bc.Name + "\\");
+                    VisualStudioProjectEditor.SetTargetOutput(BuildAllTarget, path, CoreModule.OutputObjectName, bc.Name);
                 }
             }
         }
-        static string ConvertStringArrayToStringJoin(string[] array)
-        {
-            // Use string Join to concatenate the string elements.
-            string result = string.Join(" ", array);
-            return result;
-        }
-        public static string ArrayStringQuotes(string[] array)
-        {
-            // Use string Join to concatenate the string elements.
-            string result = "";
-            foreach (string s in array)
-            {
-                result += "\"" + s + "\"" + " ";
-            }
-            return result;
-        }
-        static string ListStringDefines(List<string> array)
-        {
-            // Use string Join to concatenate the string elements.
-            string result = "";
-            foreach (string s in array)
-            {
-                result += "-D" + s + ";  ";
-            }
-            return result;
-        }
-
-        static string ArrayStringQuotes(LibRef[] array)
-        {
-            // Use string Join to concatenate the string elements.
-            string result = "";
-            foreach (LibRef s in array)
-            {
-                if (s.Path.Length == 0)
-                {
-                    continue;
-                }
-                result += " " + s.BuildType + " \"" + s.Path + "\"" + " ";
-            }
-            return result;
-        }
-        string RelativeToABS(List<string> Paths)
-        {
-            for (int i = 0; i < Paths.Count; i++)
-            {
-                Paths[i] = SanitizePath(ModuleDefManager.GetSourcePath()) + "/" + Paths[i];
-            }
-            return ArrayStringQuotes(Paths.ToArray());
-        }
+       
         public void ProcessModule(ModuleDef Module)
         {
             if (Module.Processed)
@@ -244,9 +187,9 @@ namespace EngineBuildTool
                 OutputData += CmakeCSharpProject.GetModule(Module);
                 return;
             }
-            string AllSourceFiles = ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
-            string ExtraSourceFiles = ArrayStringQuotes(Module.ModuleExtraFiles.ToArray());
-            string ALLFiles = RelativeToABS(Module.ModuleSourceFiles) + ExtraSourceFiles;
+            string AllSourceFiles = StringUtils.ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
+            string ExtraSourceFiles = StringUtils.ArrayStringQuotes(Module.ModuleExtraFiles.ToArray());
+            string ALLFiles = StringUtils.RelativeToABS(Module.ModuleSourceFiles) + ExtraSourceFiles;
             if (Module.ModuleOutputType == ModuleDef.ModuleType.ModuleDLL)
             {
                 OutputData += "add_library( " + Module.ModuleName + " MODULE " + ALLFiles + ")\n";
@@ -271,7 +214,7 @@ namespace EngineBuildTool
 
                 foreach (BuildConfig bc in ModuleDefManager.CurrentConfigs)
                 {
-                    string OutputDir = SanitizePath(ModuleDefManager.GetBinPath() + "\\Tools\\" + bc.Name + "\\");
+                    string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath() + "\\Tools\\" + bc.Name + "\\");
                     OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES RUNTIME_OUTPUT_DIRECTORY_" + bc.Name.ToUpper() + " \"" + OutputDir + "\")\n";
                 }
             }
@@ -287,7 +230,7 @@ namespace EngineBuildTool
 
             if (Module.ModuleLibs.Count != 0)
             {
-                OutputData += "target_link_libraries(" + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleLibs.ToArray()) + ")\n";
+                OutputData += "target_link_libraries(" + Module.ModuleName + " " + StringUtils.ArrayStringQuotes(Module.ModuleLibs.ToArray()) + ")\n";
             }
             if (PreBuild_HeaderTool)
             {
@@ -299,9 +242,9 @@ namespace EngineBuildTool
             }
             if (Module.ModuleDepends.Count != 0)
             {
-                OutputData += "target_link_libraries(" + Module.ModuleName + " " + ArrayStringQuotes(Module.ModuleDepends.ToArray()) + ")\n";
+                OutputData += "target_link_libraries(" + Module.ModuleName + " " + StringUtils.ArrayStringQuotes(Module.ModuleDepends.ToArray()) + ")\n";
             }
-            ProcessNuGetPacks(Module);
+            VisualStudioProjectEditor.ProcessNuGetPacks(Module);
             List<string> Dirs = new List<string>();
             Module.GetIncludeDirs(ref Dirs);
             if (Module != ModuleDefManager.CoreModule)
@@ -311,13 +254,13 @@ namespace EngineBuildTool
             if (Dirs.Count > 0)
             {
 #if true
-                OutputData += "target_include_directories(" + Module.ModuleName + " PRIVATE " + ArrayStringQuotes(Dirs.ToArray()) + ")\n";
+                OutputData += "target_include_directories(" + Module.ModuleName + " PRIVATE " + StringUtils.ArrayStringQuotes(Dirs.ToArray()) + ")\n";
 #else
                 OutputData += "include_directories(" + Module.ModuleName + " " + ArrayStringQuotes(Dirs.ToArray()) + ")\n";
 #endif
                 Dirs.Clear();
             }
-            OutputData += "source_group(TREE \"" + SanitizePath(ModuleDefManager.GetRootPath()) + "\" REGULAR_EXPRESSION \"*.h\" FILES " + ALLFiles + ")\n";
+            OutputData += "source_group(TREE \"" + StringUtils.SanitizePath(ModuleDefManager.GetRootPath()) + "\" REGULAR_EXPRESSION \"*.h\" FILES " + ALLFiles + ")\n";
 
             OutputData += "set_source_files_properties(" + ExtraSourceFiles + " PROPERTIES HEADER_FILE_ONLY ON)\n";
             OutputData += "set_target_properties( " + Module.ModuleName + " PROPERTIES GHS_NO_SOURCE_GROUP_FILE OFF)\n";
@@ -349,11 +292,11 @@ namespace EngineBuildTool
 
             }
 
-            if (CanModuleUnity(Module))
+            if (VisualStudioProjectEditor.CanModuleUnity(Module))
             {
                 Module.PreProcessorDefines.Add("WITH_UNITY");
             }
-            OutputData += "target_compile_definitions(" + Module.ModuleName + " PRIVATE " + ListStringDefines(Module.PreProcessorDefines) + ")\n";
+            OutputData += "target_compile_definitions(" + Module.ModuleName + " PRIVATE " + StringUtils.ListStringDefines(Module.PreProcessorDefines) + ")\n";
             ///WHOLEARCHIVE
             if (Module.ModuleDepends.Count > 0 && Module.ModuleOutputType == ModuleDef.ModuleType.LIB)
             {
@@ -370,7 +313,7 @@ namespace EngineBuildTool
             }
             if (Module.IsCoreModule)
             {
-                string VersionGetterString = SanitizePath(ModuleDefManager.GetRootPath() + "/Scripts/WriteCommit.bat ");
+                string VersionGetterString = StringUtils.SanitizePath(ModuleDefManager.GetRootPath() + "/Scripts/WriteCommit.bat ");
                 OutputData += "add_custom_command(TARGET " + Module.ModuleName + "  PRE_BUILD  \nCOMMAND \"" + VersionGetterString + "\" )\n";
             }
             if (Module.LaunguageType == ModuleDef.ProjectType.ManagedCPP)
@@ -383,7 +326,7 @@ namespace EngineBuildTool
                 //OutputData += "SET (MANAGEDFLAGS_D \"${CMAKE_CXX_FLAGS_DEBUG}\")\n";
                 //OutputData += "STRING(REPLACE \"/EHsc\" \"/EHa\" MANAGEDFLAGS ${MANAGEDFLAGS}) \n STRING(REPLACE \"/RTC1\" \"\" MANAGEDFLAGS_D ${MANAGEDFLAGS_D})\n";
                 //OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_FLAGS \"${CMAKE_CXX_FLAGS}" + "/clr" + "\" )\n";
-                OutputData += "set_property(TARGET " + Module.ModuleName + " PROPERTY VS_DOTNET_REFERENCES  \"System\" "+ArrayStringQuotes(Module.NetReferences.ToArray())+" )\n";
+                OutputData += "set_property(TARGET " + Module.ModuleName + " PROPERTY VS_DOTNET_REFERENCES  \"System\" "+ StringUtils.ArrayStringQuotes(Module.NetReferences.ToArray())+" )\n";
             }
             Module.Processed = true;
         }
@@ -409,202 +352,27 @@ namespace EngineBuildTool
             }
             return true;
         }
-        public void RunCmake()
+
+       
+
+        public override void Execute()
         {
             string SDKVersion = ModuleDefManager.TargetRulesObject.GetWinSDKVer();
             string Arg = " -DCMAKE_SYSTEM_VERSION=" + SDKVersion + " -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=" + SDKVersion;
             string Vs17Args = "\"Visual Studio 15 2017 Win64\"" + Arg;
             string Vs15Args = "\"Visual Studio 14 2015 Win64\"" + Arg;
             string CmakeArgs = "-G  " + (UseVs17 ? Vs17Args : Vs15Args) + " \"" + ModuleDefManager.GetSourcePath() + "\"";
-
-            System.Diagnostics.Process process = new System.Diagnostics.Process();
-            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
-            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            string Cmakeexe = "cmake";
             if (FindLocalCmake())
             {
-                startInfo.FileName = CmakeLocalPath;
+                Cmakeexe = CmakeLocalPath;
             }
-            else
-            {
-                startInfo.FileName = "cmake";
-            }
-            startInfo.Arguments = CmakeArgs;
-            startInfo.WorkingDirectory = ModuleDefManager.GetIntermediateDir();
-            startInfo.RedirectStandardOutput = true;
-            startInfo.UseShellExecute = false;
-            process.StartInfo = startInfo;
-            process.Start();
-            while (!process.HasExited)
-            {
-                using (StreamReader reader = process.StandardOutput)
-                {
-                    string result = reader.ReadToEnd();
-                    Console.Write(result);
-                }
-            }
-            process.WaitForExit();
-            Console.WriteLine("Cmake finished with Code: " + process.ExitCode);
+            int code = ProcessUtils.RunProcess(Cmakeexe,CmakeArgs);
+
+            Console.WriteLine("Cmake finished with Code: " + code);
         }
-        public static bool AllowUnityBuild = true;
-
-        public bool CanModuleUnity(ModuleDef md)
-        {
-            if (!md.UseUnity || !AllowUnityBuild || !UseVs17)
-            {
-                return false;
-            }
-            return true;
-        }
-
-        void EnableUnityBuild(ModuleDef md)
-        {
-            if (!CanModuleUnity(md))
-            {
-                return;
-            }
-            Console.WriteLine("Experimental VS Unity Build running on module " + md.ModuleName);
-            string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + md.ModuleName + ".vcxproj";
-            if (!File.Exists(VxprojPath))
-            {
-                Console.WriteLine("Error: No project file!");
-                return;
-            }
-            XmlDocument doc = new XmlDocument();
-            doc.Load(VxprojPath);
-            XmlNode target = doc.SelectSingleNode("//EnableUnitySupport");
-            if (target == null)
-            {
-                XmlNode newnode = doc.CreateNode(XmlNodeType.Element, "PropertyGroup", doc.DocumentElement.NamespaceURI);
-                doc.DocumentElement.InsertAfter(newnode, doc.DocumentElement.FirstChild);
-                XmlNode a = doc.CreateNode(XmlNodeType.Element, "EnableUnitySupport", doc.DocumentElement.NamespaceURI);
-                a.InnerText = "true";
-                newnode.AppendChild(a);
-                var nsmgr = new XmlNamespaceManager(doc.NameTable);
-                nsmgr.AddNamespace("a", "http://schemas.microsoft.com/developer/msbuild/2003");
-                XmlNodeList complies = doc.SelectNodes("//a:ClCompile", nsmgr);
-                foreach (XmlNode x in complies)
-                {
-                    XmlNode value = doc.CreateNode(XmlNodeType.Element, "IncludeInUnityFile", doc.DocumentElement.NamespaceURI);
-                    value.InnerText = "true";//<IncludeInUnityFile>true</IncludeInUnityFile>
-                    x.AppendChild(value);
-                }
-
-                ProcessExpections(doc, nsmgr, md);
-
-                doc.Save(VxprojPath);
-            }
-        }
-        void SetTargetOutput(string Targetname, string outdir, string TargetNamestr, string config)
-        {
-
-            string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + Targetname + ".vcxproj";
-            if (!File.Exists(VxprojPath))
-            {
-                Console.WriteLine("Error: No project file!");
-                return;
-            }
-            XmlDocument doc = new XmlDocument();
-            doc.Load(VxprojPath);
-            var nsmgr = new XmlNamespaceManager(doc.NameTable);
-            nsmgr.AddNamespace("a", "http://schemas.microsoft.com/developer/msbuild/2003");
-            XmlNode newnode = doc.CreateElement("PropertyGroup", doc.DocumentElement.NamespaceURI);
-            doc.DocumentElement.InsertAfter(newnode, doc.DocumentElement.FirstChild);
-            XmlAttribute attrib = doc.CreateAttribute("Condition");
-            attrib.Value = "'$(Configuration)|$(Platform)' == '" + config + "|x64'";
-            newnode.Attributes.Append(attrib);
-            XmlNode OutDir = doc.CreateElement("OutDir", doc.DocumentElement.NamespaceURI);
-            OutDir.InnerText = outdir;
-            newnode.AppendChild(OutDir);
-            XmlNode TargetName = doc.CreateElement("TargetName", doc.DocumentElement.NamespaceURI);
-            TargetName.InnerText = TargetNamestr;
-            newnode.AppendChild(TargetName);
-
-            doc.Save(VxprojPath);
-        }
-        void ProcessFile(ModuleDef md)
-        {
-            string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + md.ModuleName + ".vcxproj";
-            if (!File.Exists(VxprojPath))
-            {
-                Console.WriteLine("Error: No project file!");
-                return;
-            }
-            XmlDocument doc = new XmlDocument();
-            doc.Load(VxprojPath);
-            var nsmgr = new XmlNamespaceManager(doc.NameTable);
-            nsmgr.AddNamespace("a", "http://schemas.microsoft.com/developer/msbuild/2003");
-            PostProcessStepAddNuGet(doc, nsmgr, md);
-
-            doc.Save(VxprojPath);
-        }
-        private static void ProcessExpections(XmlDocument doc, XmlNamespaceManager nsmgr, ModuleDef md)
-        {
-            List<string> Excludes = new List<string>();
-            foreach (string path in md.UnityBuildExcludedFolders)
-            {
-                Excludes.AddRange(FileUtils.GetFilePaths(ModuleDefManager.GetSourcePath() + "\\" + md.ModuleName + "\\" + path, "*.cpp", true));
-                Console.WriteLine("Excluded " + path + " from unity build for module " + md.ModuleName);
-            }
-
-            XmlNodeList cl = doc.SelectNodes("//a:ItemGroup", nsmgr);
-            foreach (string s in Excludes)
-            {
-                string parsed = SanitizePathToDoubleBack(s);
-                XmlNodeList cc = doc.SelectNodes("//a:ClCompile[*]", nsmgr);
-                foreach (XmlNode nn in cc)
-                {
-                    if (nn.Attributes.Count > 0)
-                    {
-                        if (nn.Attributes[0].Value == parsed)
-                        {
-                            nn.FirstChild.InnerText = "false";
-                        }
-                    }
-                }
-            }
-        }
-
-        void ProcessNuGetPacks(ModuleDef M)
-        {
-            if (M.NuGetPackages.Count == 0)
-            {
-                return;
-            }
-            OutputData += "find_program(NUGET nuget)\nif (NOT NUGET) \n   message(FATAL \"CMake could not find the nuget command line tool. Please install it!\")\nendif()\n";
-            foreach (string Pack in M.NuGetPackages)
-            {
-                //M.ModuleSourceFiles
-                //OutputData += "execute_process(COMMAND NUGET install " + Pack + " -OutputDirectory " + SanitizePath(ModuleDefManager.GetIntermediateDir() + "\\packages")+
-                //    "  \n WORKING_DIRECTORY " + SanitizePath(ModuleDefManager.GetRootPath() + "/Scripts/") + " )\n";
-            }
-        }
-        void PostProcessStepAddNuGet(XmlDocument doc, XmlNamespaceManager nsmgr, ModuleDef md)
-        {
-            if (md.NuGetPackages.Count == 0)
-            {
-                return;
-            }
-            foreach (string Pack in md.NuGetPackages)
-            {
-                //  string data = "<Import Project=\"packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets\" Condition=\"Exists('packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets')\" />";
-                XmlNodeList cl = doc.SelectNodes("//a:ImportGroup", nsmgr);
-                //  foreach (XmlNode nn in cl)
-                {
-                    XmlNode nn = cl[cl.Count - 1];
-                    XmlNode value = doc.CreateNode(XmlNodeType.Element, "Import", doc.DocumentElement.NamespaceURI);
-                    XmlAttribute A = doc.CreateAttribute("Project");
-                    A.Value = "packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets";// Condition=\"Exists('packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets')\";
-                    value.Attributes.Append(A);
-                    XmlAttribute B = doc.CreateAttribute("Condition");
-                    B.Value = "Exists('packages\\WinPixEventRuntime.1.0.190604001\\build\\WinPixEventRuntime.targets')";
-                    value.Attributes.Append(B);
-                    //  value.InnerText = "true";//<IncludeInUnityFile>true</IncludeInUnityFile>
-                    nn.AppendChild(value);
-
-                }
-            }
-        }
-        public void ClearCmakeCache()
+     
+        public override void ClearCache()
         {
             string CMakeDir = ModuleDefManager.GetIntermediateDir() + "\\CMakeFiles";
             if (Directory.Exists(CMakeDir))

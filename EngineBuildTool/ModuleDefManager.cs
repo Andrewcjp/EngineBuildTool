@@ -211,7 +211,10 @@ namespace EngineBuildTool
             CurrentConfigs = BuildConfiguration.GetDefaultConfigs();
             Directory.CreateDirectory(GetIntermediateDir());
             GatherModuleFiles();
-            CmakeGenerator gen = new CmakeGenerator();
+
+            GeneratorBase gen = new PreMakeGenerator();
+           // GeneratorBase gen = new CmakeGenerator();
+
             //core module Is Special!
             CoreModule = TargetRulesObject.GetCoreModule();
             for (int i = ALLModules.Count - 1; i >= 0; i--)
@@ -236,12 +239,12 @@ namespace EngineBuildTool
             LogStage("CMake Stage");
             if (!SettingCache.IsCacheValid())
             {
-                gen.ClearCmakeCache();
+                gen.ClearCache();
                 Console.WriteLine("CMake cache Is Invalid, clearing...");
             }
             Console.WriteLine("Running CMake");
             gen.GenerateList(ALLModules, CoreModule, CurrentConfigs);
-            gen.RunCmake();
+            gen.Execute();
             LogStage("Post Gen");
             gen.RunPostStep(NonCoreModuleObjects, CoreModule);
             LogStage("Copy DLLs");
@@ -302,7 +305,13 @@ namespace EngineBuildTool
                 {
                     Projectdata.LibSearchPaths.AddRange(def.AdditonalLibSearchPaths);
                 }
+                if(def.LaunguageType == ModuleDef.ProjectType.CSharp)
+                {
+                    //add the system links
+                    def.NetReferences.Add("System.Windows.Forms");
+                }
             }
+            
         }
 
         void ProcessModules()

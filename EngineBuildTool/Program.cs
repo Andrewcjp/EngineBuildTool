@@ -35,7 +35,7 @@ namespace EngineBuildTool
                 }
                 if (args.Contains("-nounity"))
                 {
-                    CmakeGenerator.AllowUnityBuild = false;
+                    VisualStudioProjectEditor.AllowUnityBuild = false;
                 }
             }
             else
