@@ -166,7 +166,7 @@ namespace EngineBuildTool
                     ModuleNames[i] = ModuleNames[i].Remove(ModuleNames[i].Length - ModuleEnd.Length, ModuleEnd.Length);
                 }
             }
-            InitObjectsOfType<ModuleDef>(ModuleNames, ref NonCoreModuleObjects, CompiledAssembly, ModuleSufix);
+            InitObjectsOfType(ModuleNames, ref NonCoreModuleObjects, CompiledAssembly, ModuleSufix);
             ALLModules.AddRange(NonCoreModuleObjects);
         }
 
@@ -211,7 +211,7 @@ namespace EngineBuildTool
             CurrentConfigs = BuildConfiguration.GetDefaultConfigs();
             Directory.CreateDirectory(GetIntermediateDir());
             GatherModuleFiles();
-
+            PlatformDefinition.Init();
             GeneratorBase gen = new PreMakeGenerator();
            // GeneratorBase gen = new CmakeGenerator();
 
@@ -243,6 +243,7 @@ namespace EngineBuildTool
                 Console.WriteLine("CMake cache Is Invalid, clearing...");
             }
             Console.WriteLine("Running CMake");
+            gen.SingleTargetPlatform = PlatformDefinition.GetDefinition(PlatformDefinition.Platforms.Windows);
             gen.GenerateList(ALLModules, CoreModule, CurrentConfigs);
             gen.Execute();
             LogStage("Post Gen");
@@ -295,7 +296,7 @@ namespace EngineBuildTool
                 def.PostInit(TargetRulesObject);
                 if (def.ModuleOutputType == ModuleDef.ModuleType.LIB)
                 {
-                    CoreModule.ModuleDepends.Add(def.ModuleName);
+                   // CoreModule.ModuleDepends.Add(def.ModuleName);
                 }
                 if (def.NeedsCore)
                 {

@@ -72,7 +72,8 @@ namespace EngineBuildTool
             doc.Load(VxprojPath);
             var nsmgr = new XmlNamespaceManager(doc.NameTable);
             nsmgr.AddNamespace("a", "http://schemas.microsoft.com/developer/msbuild/2003");
-            string Conditionstr = "'$(Configuration)|$(Platform)'=='" + config + " Win64|x64'";
+            //  string Conditionstr = "'$(Configuration)|$(Platform)'=='" + config + "Win64|x64'";
+            string Conditionstr = "'$(Configuration)|$(Platform)'=='" + config + "|x64'";
             string Querry = "//a:PropertyGroup[@Condition=\"" + Conditionstr + "\"]";
             XmlNode target = doc.SelectSingleNode(Querry, nsmgr);
             if (target == null) 

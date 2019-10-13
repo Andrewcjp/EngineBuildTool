@@ -8,10 +8,10 @@ using System.Xml;
 
 namespace EngineBuildTool
 {
-    class CmakeGenerator: GeneratorBase
+    class CmakeGenerator : GeneratorBase
     {
         bool PreBuild_HeaderTool = false;
-        bool UseAllBuildWorkAround = true;
+        bool UseAllBuildWorkAround = false;
         const bool EnableFastLink = true;
         string OutputData = "";
 
@@ -88,6 +88,7 @@ namespace EngineBuildTool
             {
                 OutputData += "set(CMAKE_EXE_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
                 OutputData += "set(CMAKE_MODULE_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
+                OutputData += "set(CMAKE_SHARED_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
             }
             OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(buildConfigs) + ")\n";
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
@@ -116,6 +117,7 @@ namespace EngineBuildTool
         const string HeaderToolTarget = "HeaderTool";
         public override void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
         {
+            Console.WriteLine("Targeting Platform " + SingleTargetPlatform.Name);
             GenHeader(buildConfigs);
             ProcessModule(CoreModule);
 
@@ -150,8 +152,22 @@ namespace EngineBuildTool
             }
             else
             {
-                OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + CoreModule.ModuleName + ")\n";
+                //OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + CoreModule.ModuleName + ")\n";
+                ModuleDef Temp_GMOut = null;
+                foreach (ModuleDef M in Modules)
+                {
+                    if(M.ModuleOutputType == ModuleDef.ModuleType.EXE)
+                    {
+                        Temp_GMOut = M;
+                        break;
+                    }
+                }
+                foreach (ModuleDef M in Modules)
+                {
+                    OutputData += "add_dependencies(" + Temp_GMOut.ModuleName + " " + M.ModuleName + ")\n";
+                }
             }
+
             WriteToFile(ModuleDefManager.GetSourcePath());
 
         }
@@ -172,7 +188,7 @@ namespace EngineBuildTool
                 }
             }
         }
-       
+
         public void ProcessModule(ModuleDef Module)
         {
             if (Module.Processed)
@@ -187,6 +203,7 @@ namespace EngineBuildTool
                 OutputData += CmakeCSharpProject.GetModule(Module);
                 return;
             }
+            Module.PreProcessorDefines.AddRange(SingleTargetPlatform.Defines);
             string AllSourceFiles = StringUtils.ArrayStringQuotes(Module.ModuleSourceFiles.ToArray());
             string ExtraSourceFiles = StringUtils.ArrayStringQuotes(Module.ModuleExtraFiles.ToArray());
             string ALLFiles = StringUtils.RelativeToABS(Module.ModuleSourceFiles) + ExtraSourceFiles;
@@ -326,7 +343,7 @@ namespace EngineBuildTool
                 //OutputData += "SET (MANAGEDFLAGS_D \"${CMAKE_CXX_FLAGS_DEBUG}\")\n";
                 //OutputData += "STRING(REPLACE \"/EHsc\" \"/EHa\" MANAGEDFLAGS ${MANAGEDFLAGS}) \n STRING(REPLACE \"/RTC1\" \"\" MANAGEDFLAGS_D ${MANAGEDFLAGS_D})\n";
                 //OutputData += "set_target_properties(" + Module.ModuleName + " PROPERTIES COMPILE_FLAGS \"${CMAKE_CXX_FLAGS}" + "/clr" + "\" )\n";
-                OutputData += "set_property(TARGET " + Module.ModuleName + " PROPERTY VS_DOTNET_REFERENCES  \"System\" "+ StringUtils.ArrayStringQuotes(Module.NetReferences.ToArray())+" )\n";
+                OutputData += "set_property(TARGET " + Module.ModuleName + " PROPERTY VS_DOTNET_REFERENCES  \"System\" " + StringUtils.ArrayStringQuotes(Module.NetReferences.ToArray()) + " )\n";
             }
             Module.Processed = true;
         }
@@ -353,7 +370,7 @@ namespace EngineBuildTool
             return true;
         }
 
-       
+
 
         public override void Execute()
         {
@@ -367,11 +384,11 @@ namespace EngineBuildTool
             {
                 Cmakeexe = CmakeLocalPath;
             }
-            int code = ProcessUtils.RunProcess(Cmakeexe,CmakeArgs);
+            int code = ProcessUtils.RunProcess(Cmakeexe, CmakeArgs);
 
             Console.WriteLine("Cmake finished with Code: " + code);
         }
-     
+
         public override void ClearCache()
         {
             string CMakeDir = ModuleDefManager.GetIntermediateDir() + "\\CMakeFiles";

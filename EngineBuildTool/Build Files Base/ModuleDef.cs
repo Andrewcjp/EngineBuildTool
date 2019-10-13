@@ -56,6 +56,7 @@ namespace EngineBuildTool
         public List<string> NuGetPackages = new List<string>();
         public List<string> NetReferences = new List<string>();
         public List<string> UnsupportedPlatforms = new List<string>();
+        public bool IsOutputEXE = false;
         public ModuleDef(TargetRules Rules)
         { }
         public string GameModuleName = "TestGame";

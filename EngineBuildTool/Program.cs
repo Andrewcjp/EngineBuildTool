@@ -53,11 +53,15 @@ namespace EngineBuildTool
             }
             Time.Stop();
             Console.WriteLine("Build tool finished in " + Time.ElapsedMilliseconds + "ms ");
+            if (Console.IsOutputRedirected)
+            {
+                return;
+            }
             Console.WriteLine("Closing In 5s Press any key to abort");
             Time.Restart();
             float Starttime = 5; 
             while (Time.ElapsedMilliseconds < (Starttime * 1000))
-            {
+            {                
                 if (Console.KeyAvailable) 
                 {
                     Console.WriteLine("\nAborted! Press Any Key To exit");

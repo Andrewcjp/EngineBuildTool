@@ -8,6 +8,8 @@ namespace EngineBuildTool
 {
     public abstract class GeneratorBase
     {
+        //for single platform generators
+        public PlatformDefinition SingleTargetPlatform;
         public abstract void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs);
         public abstract void Execute();
         public abstract void RunPostStep(List<ModuleDef> Modules, ModuleDef CoreModule);

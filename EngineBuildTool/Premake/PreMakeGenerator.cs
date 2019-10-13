@@ -49,11 +49,12 @@ namespace EngineBuildTool
             {
                 outputdata += "filter{\"platforms:" + PDef.Name + "\"}\n";
                 outputdata += "     system \"" + PDef.SystemType + "\"\n";
-                outputdata += "     architecture \"x64\"\n";
+                outputdata += "     architecture \"" + PDef.ProcessorArch + "\"\n";
                 outputdata += "     defines{" + StringUtils.ArrayStringQuotesComma(PDef.Defines.ToArray()) + " }\n";
-                outputdata += "     systemversion \"" + PDef.SystemVersion + "\"";
+                outputdata += "     systemversion \"" + PDef.SystemVersion + "\"\n";
             }
-
+            PopFilter();
+            PushPlatformFilter(PlatformDefinition.Platforms.Windows);
             foreach (BuildConfig B in buildConfigs)
             {
                 outputdata += "filter{\"configurations:" + B.Name + "\"}\n";
@@ -66,18 +67,32 @@ namespace EngineBuildTool
                     outputdata += "     defines { \"NDEBUG\" } \n  optimize   \"On\" \n";
                 }
             }
-
+            PopFilter();
             AddCustomTargets(Modules, buildConfigs);
-
+            CoreModule.ModuleDepends.Add("HeaderTool");
             AddModule(CoreModule, buildConfigs);
             foreach (ModuleDef m in Modules)
             {
-                AddModule(m, buildConfigs);
+                if (m.IsOutputEXE && m.ModuleOutputType == ModuleDef.ModuleType.EXE)
+                {
+                    foreach (ModuleDef mn in Modules)
+                    { 
+                        m.ModuleDepends.Add(mn.ModuleName);
+                    }
+                }
+                AddModule(m, buildConfigs);                
             }
 
             File.WriteAllText(DefinitionFile, outputdata);
         }
-
+        void PushPlatformFilter(PlatformDefinition.Platforms Type)
+        {
+            outputdata += "filter{\"platforms:" + PlatformDefinition.GetDefinition(Type).Name + "\"}\n";
+        }
+        void PopFilter()
+        {
+            outputdata += "filter {}\n";
+        }
         void AddModule(ModuleDef m, List<BuildConfig> buildConfigs)
         {
             m.GatherSourceFiles();
@@ -105,9 +120,16 @@ namespace EngineBuildTool
 
             outputdata += "     language \"" + ConvertLanguage(m) + "\"";
             outputdata += "     defines{" + StringUtils.ArrayStringQuotesComma(m.PreProcessorDefines.ToArray()) + " }\n";
-            outputdata += "     buildoptions  {\"/bigobj\" }\n";
             outputdata += "     flags {\"NoImportLib\"}\n";
-            // outputdata += "defaultplatform \"Win64\"\n";
+
+            PushPlatformFilter(PlatformDefinition.Platforms.Windows);
+            outputdata += "     buildoptions  {\"/bigobj\" }\n";
+            PopFilter();
+            PushPlatformFilter(PlatformDefinition.Platforms.Android);
+            outputdata += "     buildoptions  {\"-frtti -fexceptions\" }\n";
+            outputdata += "     cppdialect \"C++14\"\n";
+            PopFilter();
+
             if (m.PCH.Length > 0)
             {
                 outputdata += "     pchheader \"" + m.PCH + ".h\"\n";
@@ -134,7 +156,10 @@ namespace EngineBuildTool
             {
                 outputdata += "removeplatforms  { " + StringUtils.ArrayStringQuotesComma(m.UnsupportedPlatforms.ToArray()) + "}\n";
             }
-            
+            if (m.ModuleDepends.Count > 0)
+            {
+                outputdata += "dependson {" + StringUtils.ArrayStringQuotesComma(m.ModuleDepends.ToArray()) + "}\n";
+            }
             foreach (BuildConfig Bc in buildConfigs)
             {
                 string Links = CreateLibs(m, Bc);
@@ -143,45 +168,47 @@ namespace EngineBuildTool
                     outputdata += "  filter{\"configurations:" + Bc.Name + "\"}\n";
                     outputdata += "          links { " + Links + "}\n";
                     string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + Bc.Name;
-                    outputdata += "          targetdir  \"" + OutputDir + "\"\n";
+                    outputdata += "          targetdir  (\"" + OutputDir + "\")\n";
                     if (m.OutputObjectName.Length != 0)
                     {
                         outputdata += "          targetname \"" + m.OutputObjectName + "\"";
                     }
                 }
             }
+            PopFilter();
+
         }
         string CreateLibs(ModuleDef m, BuildConfig BC)
         {
             string linkout = "";
             if (m.ModuleDepends.Count > 0)
             {
-                linkout = StringUtils.ArrayStringQuotesComma(m.ModuleDepends.ToArray());
+                // linkout = StringUtils.ArrayStringQuotesComma(m.ModuleDepends.ToArray());
             }
             List<LibRef> AllLibs = new List<LibRef>();
             string DllOut = "";
-            if (m.LaunguageType != ModuleDef.ProjectType.CSharp)
+
+
+            AllLibs.AddRange(m.ModuleLibs);
+            if (m != ModuleDefManager.CoreModule)
             {
-                AllLibs.AddRange(m.ModuleLibs);
-                if (m != ModuleDefManager.CoreModule)
-                {
-                    LibRef r = new LibRef();
-                    string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + BC.Name;
-                    r.Path = OutputDir + "/BleedOut.lib";
-                    AllLibs.Add(r);
-                    AllLibs.AddRange(ModuleDefManager.CoreModule.ModuleLibs);
-                }
+                LibRef r = new LibRef();
+                string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + BC.Name;
+                r.Path = OutputDir + "/Core.lib";
+                AllLibs.Add(r);
+                AllLibs.AddRange(ModuleDefManager.CoreModule.ModuleLibs);
+            }
 
 
-                foreach (LibRef r in AllLibs)
+            foreach (LibRef r in AllLibs)
+            {
+                if (r.BuildCFg == BC.GetLibType() || r.BuildCFg == LibBuildConfig.General)
                 {
-                    if (r.BuildCFg == BC.GetLibType() || r.BuildCFg == LibBuildConfig.General)
-                    {
-                        DllOut += "\"" + r.Path + "\", ";
-                    }
+                    DllOut += "\"" + r.Path + "\", ";
                 }
             }
-            else
+
+            if (m.LaunguageType == ModuleDef.ProjectType.CSharp || m.LaunguageType == ModuleDef.ProjectType.ManagedCPP)
             {
                 foreach (string s in m.NetReferences)
                 {
@@ -238,27 +265,7 @@ namespace EngineBuildTool
             headertoolString += " -Name " + ModuleDefManager.CoreModule.GameModuleName;
             Console.WriteLine("Game Module is " + ModuleDefManager.CoreModule.GameModuleName);
             outputdata += "buildcommands {\" " + headertoolString + "  \"}\n";
-            //outputdata += "buildoutputs {  'test.c' }\n";
-
-            outputdata += "group \"Targets/\"\n";
-            outputdata += "project \"" + BuildAllTarget + "\"\n";
-            outputdata += "kind (\"ConsoleApp\")\n";
-            string Links = "\"" + ModuleDefManager.CoreModule.ModuleName + "\",";
-            foreach (ModuleDef m in Modules)
-            {
-                Links += "\"" + m.ModuleName + "\" ,";
-            }
-            outputdata += "  links { " + Links + "}\n";
-
-            foreach (BuildConfig Bc in buildConfigs)
-            {
-                // outputdata += "  filter{\"configurations:" + Bc.Name + "\"}\n";
-                string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + Bc.Name;
-                outputdata += "          targetdir  \"" + OutputDir + "\"\n";
-                //outputdata += "          targetname \"" + ModuleDefManager.CoreModule.OutputObjectName + "\"";
-                //outputdata += "          targetextension  \"" + ".exe" + "\"\n";
-
-            }
+            // outputdata += "buildoutputs {  '" + StringUtils.SanitizePath(ModuleDefManager.GetIntermediateDir() + "\\Generated\\Core\\Core\\Components\\LightComponent.generated.h") + "' }\n";
 
         }
     }

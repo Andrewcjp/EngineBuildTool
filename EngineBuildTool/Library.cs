@@ -98,6 +98,14 @@ namespace EngineBuildTool
                             continue;
                         }
                         string filepath = ModuleDefManager.GetBinPath() + "\\" + bc.Name + "\\" + Path.GetFileName(LNR.LibName);
+                       
+                        if (File.Exists(filepath))
+                        {
+                            if(File.GetLastWriteTime(filepath) >= File.GetLastWriteTime(DLLref.Path))
+                            {
+                                continue;
+                            }
+                        }
                         Directory.CreateDirectory(Path.GetDirectoryName(filepath));
                         File.Copy(DLLref.Path, filepath, true);
                         if (ModuleDefManager.IsDebug())
