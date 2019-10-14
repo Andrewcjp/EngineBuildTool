@@ -10,7 +10,7 @@ namespace EngineBuildTool
 {
     class CmakeGenerator : GeneratorBase
     {
-        bool PreBuild_HeaderTool = false;
+        bool PreBuild_HeaderTool = true;
         bool UseAllBuildWorkAround = false;
         const bool EnableFastLink = true;
         string OutputData = "";
@@ -152,7 +152,7 @@ namespace EngineBuildTool
             }
             else
             {
-                //OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + CoreModule.ModuleName + ")\n";
+               
                 ModuleDef Temp_GMOut = null;
                 foreach (ModuleDef M in Modules)
                 {
@@ -166,6 +166,7 @@ namespace EngineBuildTool
                 {
                     OutputData += "add_dependencies(" + Temp_GMOut.ModuleName + " " + M.ModuleName + ")\n";
                 }
+                OutputData += "set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT " + Temp_GMOut.ModuleName + ")\n";
             }
 
             WriteToFile(ModuleDefManager.GetSourcePath());

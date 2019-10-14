@@ -11,6 +11,7 @@ namespace EngineBuildTool
     {
         public string BuildType = "";
         public LibBuildConfig BuildCFg = LibBuildConfig.General;
+        public PlatformDefinition.Platforms TargetPlatform = PlatformDefinition.Platforms.Limit;
         public string Path = "";
         public string Name = "";
     }

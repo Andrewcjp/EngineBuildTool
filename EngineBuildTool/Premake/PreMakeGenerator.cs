@@ -76,17 +76,22 @@ namespace EngineBuildTool
                 if (m.IsOutputEXE && m.ModuleOutputType == ModuleDef.ModuleType.EXE)
                 {
                     foreach (ModuleDef mn in Modules)
-                    { 
+                    {
                         m.ModuleDepends.Add(mn.ModuleName);
                     }
                 }
-                AddModule(m, buildConfigs);                
+                AddModule(m, buildConfigs);
             }
 
             File.WriteAllText(DefinitionFile, outputdata);
         }
         void PushPlatformFilter(PlatformDefinition.Platforms Type)
         {
+            if (Type == PlatformDefinition.Platforms.Limit)
+            {
+                PopFilter();
+                return;
+            }
             outputdata += "filter{\"platforms:" + PlatformDefinition.GetDefinition(Type).Name + "\"}\n";
         }
         void PopFilter()
@@ -95,6 +100,7 @@ namespace EngineBuildTool
         }
         void AddModule(ModuleDef m, List<BuildConfig> buildConfigs)
         {
+            List<PlatformDefinition> Platforms = PlatformDefinition.GetDefaultPlatforms();
             m.GatherSourceFiles();
             m.GatherIncludes();
             string AllSourceFiles = StringUtils.ArrayStringQuotesComma(m.ModuleSourceFiles.ToArray());
@@ -160,48 +166,65 @@ namespace EngineBuildTool
             {
                 outputdata += "dependson {" + StringUtils.ArrayStringQuotesComma(m.ModuleDepends.ToArray()) + "}\n";
             }
-            foreach (BuildConfig Bc in buildConfigs)
+           
+            foreach (PlatformDefinition PD in Platforms)
             {
-                string Links = CreateLibs(m, Bc);
-                if (Links.Length > 0)
+                if (PD == null)
                 {
-                    outputdata += "  filter{\"configurations:" + Bc.Name + "\"}\n";
-                    outputdata += "          links { " + Links + "}\n";
-                    string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + Bc.Name;
-                    outputdata += "          targetdir  (\"" + OutputDir + "\")\n";
-                    if (m.OutputObjectName.Length != 0)
+                    continue;
+                }
+                foreach (BuildConfig Bc in buildConfigs)
+                {
+                    string Links = CreateLibs(m, Bc, PD);
+                    if (Links.Length > 0)
                     {
-                        outputdata += "          targetname \"" + m.OutputObjectName + "\"";
+                        PushPlatformFilter(PD.Type);
+                        outputdata += "  filter{\"configurations:" + Bc.Name + "\"}\n";
+                        outputdata += "          links { " + Links + "}\n";
+                        string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + Bc.Name;
+                        outputdata += "          targetdir  (\"" + OutputDir + "\")\n";
+                        if (m.OutputObjectName.Length != 0)
+                        {
+                            outputdata += "          targetname \"" + m.OutputObjectName + "\"\n";
+                        }
+                        PopFilter();
                     }
                 }
             }
             PopFilter();
 
         }
-        string CreateLibs(ModuleDef m, BuildConfig BC)
+        string CreateLibs(ModuleDef m, BuildConfig BC, PlatformDefinition PD)
         {
             string linkout = "";
-            if (m.ModuleDepends.Count > 0)
+            if (m.UnsupportedPlatforms.Contains(PD.Name))
             {
-                // linkout = StringUtils.ArrayStringQuotesComma(m.ModuleDepends.ToArray());
+                return "";
+            }
+            string DllOut = "";
+            if (m != ModuleDefManager.CoreModule)
+            {
+                DllOut += "\"" + ModuleDefManager.CoreModule.ModuleName + "\", ";
             }
             List<LibRef> AllLibs = new List<LibRef>();
-            string DllOut = "";
-
-
+          
             AllLibs.AddRange(m.ModuleLibs);
             if (m != ModuleDefManager.CoreModule)
             {
                 LibRef r = new LibRef();
+                r.TargetPlatform = PlatformDefinition.Platforms.Limit;
                 string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + BC.Name;
                 r.Path = OutputDir + "/Core.lib";
                 AllLibs.Add(r);
                 AllLibs.AddRange(ModuleDefManager.CoreModule.ModuleLibs);
             }
 
-
             foreach (LibRef r in AllLibs)
             {
+                if (r.TargetPlatform != PlatformDefinition.Platforms.Limit && r.TargetPlatform != PD.Type)
+                {
+                    continue;
+                }
                 if (r.BuildCFg == BC.GetLibType() || r.BuildCFg == LibBuildConfig.General)
                 {
                     DllOut += "\"" + r.Path + "\", ";

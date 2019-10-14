@@ -18,7 +18,7 @@ namespace EngineBuildTool
             Limit
         }
         public PlatformDefinition() { }
-        public PlatformDefinition(string name, List<string> defines = null)
+        public PlatformDefinition(string name, List<string> defines,Platforms type)
         {
             Name = name;
             if (defines != null)
@@ -26,11 +26,11 @@ namespace EngineBuildTool
                 Defines.AddRange(defines);
             }
             SystemVersion = ModuleDefManager.TargetRulesObject.GetWinSDKVer();
-
+            Type = type;
         }
         public string Name = "";
         public List<string> Defines = new List<string>();
-
+        public Platforms Type = Platforms.Limit;
         public string SystemType = "windows";
         public string SystemVersion = "";
         public string ProcessorArch = "x64";
@@ -49,15 +49,15 @@ namespace EngineBuildTool
         }
         public static void Init()
         {
-            Definitions[(int)Platforms.Windows] = new PlatformDefinition("Win64", new List<string>() { "PLATFORM_WINDOWS" });
+            Definitions[(int)Platforms.Windows] = new PlatformDefinition("Win64", new List<string>() { "PLATFORM_WINDOWS" },Platforms.Windows);
 #if false
             Defs.Add(new PlatformDefinition("Win64_DX12", new List<string>() { "PLATFORM_WINDOWS", "SINGLERHI_DX12", "ALLOW_SINGLE_RHI" }));
             Defs.Add(new PlatformDefinition("Win64_VK", new List<string>() { "PLATFORM_WINDOWS", "SINGLERHI_VK", "ALLOW_SINGLE_RHI" }));
 #endif
-            Definitions[(int)Platforms.Linux] = new PlatformDefinition("Linux", new List<string>() { "PLATFORM_LINUX" });
+            Definitions[(int)Platforms.Linux] = new PlatformDefinition("Linux", new List<string>() { "PLATFORM_LINUX" }, Platforms.Limit);
             Definitions[(int)Platforms.Linux].SystemType = "linux";
 
-            Definitions[(int)Platforms.Android] = new PlatformDefinition("Android", new List<string>() { "PLATFORM_ANDROID", "SINGLERHI_VK", "ALLOW_SINGLE_RHI" });
+            Definitions[(int)Platforms.Android] = new PlatformDefinition("Android", new List<string>() { "PLATFORM_ANDROID", "SINGLERHI_VK", "ALLOW_SINGLE_RHI" }, Platforms.Android);
             Definitions[(int)Platforms.Android].SystemType = "android";
             Definitions[(int)Platforms.Android].ProcessorArch = "ARM";
         }
@@ -67,7 +67,7 @@ namespace EngineBuildTool
             {
                 if (d == null)
                 {
-                    continue;
+                    continue; 
                 }
                 Console.WriteLine("Found platform " + d.Name);
             }
