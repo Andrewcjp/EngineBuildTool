@@ -76,14 +76,14 @@ namespace EngineBuildTool
             string Conditionstr = "'$(Configuration)|$(Platform)'=='" + config + "|x64'";
             string Querry = "//a:PropertyGroup[@Condition=\"" + Conditionstr + "\"]";
             XmlNode target = doc.SelectSingleNode(Querry, nsmgr);
-            if (target == null) 
+            if (target == null)
             {
                 XmlNode newnode = doc.CreateElement("PropertyGroup", doc.DocumentElement.NamespaceURI);
                 doc.DocumentElement.InsertAfter(newnode, doc.DocumentElement.FirstChild);
                 XmlAttribute attrib = doc.CreateAttribute("Condition");
                 attrib.Value = Conditionstr;
                 newnode.Attributes.Append(attrib);
-                target = newnode; 
+                target = newnode;
             }
 
             XmlNode OutDir = doc.CreateElement("OutDir", doc.DocumentElement.NamespaceURI);
@@ -176,6 +176,33 @@ namespace EngineBuildTool
                     nn.AppendChild(value);
 
                 }
+            }
+        }
+        public static void ReplaceAllModule(ModuleDef md, string target, string replacement)
+        {
+            string VxprojPath = ModuleDefManager.GetIntermediateDir() + "\\" + md.ModuleName + ".vcxproj";
+            if (!File.Exists(VxprojPath))
+            {
+                Console.WriteLine("Error: No project file!");
+                return;
+            }
+            ReplaceAll(VxprojPath, target, replacement);
+        }
+        public static void ReplaceAll(string VxprojPath, string target, string replacement)
+        {
+            string[] lines = File.ReadAllLines(VxprojPath);
+            bool changed = false;
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (lines[i].Contains(target))
+                {
+                    lines[i] = lines[i].Replace(target, replacement);
+                    changed = true;
+                }
+            }
+            if (changed)
+            {
+                File.WriteAllLines(VxprojPath, lines);
             }
         }
     }

@@ -84,6 +84,7 @@ namespace EngineBuildTool
             OutputData += "set(CMAKE_MODULE_OUTPUT_DIRECTORY  \"" + OutputDir + "\")\n";///NODEFAULTLIB:MSVCRT
             OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /IGNORE:4099 \")\n";
             OutputData += "set(CMAKE_EXE_LINKER_CONSOLE_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:CONSOLE  \")\n";
+
             if (EnableFastLink)
             {
                 OutputData += "set(CMAKE_EXE_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
@@ -152,11 +153,11 @@ namespace EngineBuildTool
             }
             else
             {
-               
+
                 ModuleDef Temp_GMOut = null;
                 foreach (ModuleDef M in Modules)
                 {
-                    if(M.ModuleOutputType == ModuleDef.ModuleType.EXE)
+                    if (M.ModuleOutputType == ModuleDef.ModuleType.EXE)
                     {
                         Temp_GMOut = M;
                         break;
@@ -174,11 +175,39 @@ namespace EngineBuildTool
         }
         public override void RunPostStep(List<ModuleDef> Modules, ModuleDef CoreModule)
         {
+            string replacement = " Win64|x64";
+            string ConfigToken = "</Configuration>";
+            string ConfigreplaceToken = " Win64</Configuration>";
             VisualStudioProjectEditor.EnableUnityBuild(CoreModule);
+            VisualStudioProjectEditor.ReplaceAllModule(CoreModule, "|x64", replacement);
+            VisualStudioProjectEditor.ReplaceAllModule(CoreModule, ConfigToken, ConfigreplaceToken);
             foreach (ModuleDef m in Modules)
             {
                 VisualStudioProjectEditor.EnableUnityBuild(m);
                 VisualStudioProjectEditor.ProcessFile(m);
+                VisualStudioProjectEditor.ReplaceAllModule(m, "|x64", replacement);
+                VisualStudioProjectEditor.ReplaceAllModule(m, ConfigToken, ConfigreplaceToken);
+            }
+            string buildall = ModuleDefManager.GetIntermediateDir() + "\\ALL_Build.vcxproj";
+            VisualStudioProjectEditor.ReplaceAll(buildall, "|x64", replacement);
+            VisualStudioProjectEditor.ReplaceAll(buildall, ConfigToken, ConfigreplaceToken);
+            string HeaderTool = ModuleDefManager.GetIntermediateDir() + "\\HeaderTool.vcxproj";
+            VisualStudioProjectEditor.ReplaceAll(HeaderTool, "|x64", replacement);
+            VisualStudioProjectEditor.ReplaceAll(HeaderTool, ConfigToken, ConfigreplaceToken);
+            string SLNpath = ModuleDefManager.GetIntermediateDir() + "\\Engine.sln";
+
+            foreach (BuildConfig bc in ModuleDefManager.CurrentConfigs)
+            {
+
+                string token = "|x64.ActiveCfg = " + bc.Name + "|x64";
+                string repalcementtoken = "|Win64.ActiveCfg = " + bc.Name + " Win64|x64";
+                VisualStudioProjectEditor.ReplaceAll(SLNpath, token, repalcementtoken);
+                token = "|x64.Build.0 = " + bc.Name + "|x64";
+                repalcementtoken = "|Win64.Build.0 = " + bc.Name + " Win64|x64";
+                VisualStudioProjectEditor.ReplaceAll(SLNpath, token, repalcementtoken);
+                token = "|x64 = " + bc.Name + "|x64";
+                repalcementtoken = "|Win64 = " + bc.Name + "|Win64";
+                VisualStudioProjectEditor.ReplaceAll(SLNpath, token, repalcementtoken);
             }
             if (UseAllBuildWorkAround)
             {
@@ -188,6 +217,7 @@ namespace EngineBuildTool
                     VisualStudioProjectEditor.SetTargetOutput(BuildAllTarget, path, CoreModule.OutputObjectName, bc.Name);
                 }
             }
+
         }
 
         public void ProcessModule(ModuleDef Module)

@@ -212,9 +212,11 @@ namespace EngineBuildTool
             Directory.CreateDirectory(GetIntermediateDir());
             GatherModuleFiles();
             PlatformDefinition.Init();
-            //GeneratorBase gen = new PreMakeGenerator();
+#if false
+            GeneratorBase gen = new PreMakeGenerator();
+#else
             GeneratorBase gen = new CmakeGenerator();
-
+#endif
             //core module Is Special!
             CoreModule = TargetRulesObject.GetCoreModule();
             for (int i = ALLModules.Count - 1; i >= 0; i--)
