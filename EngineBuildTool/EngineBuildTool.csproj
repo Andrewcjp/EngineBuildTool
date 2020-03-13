@@ -53,6 +53,7 @@
     <Compile Include="Cmake\CmakeCSharpProject.cs" />
     <Compile Include="Cmake\CmakeGenerator.cs" />
     <Compile Include="Build Files Base\ExternalModuleDef.cs" />
+    <Compile Include="PlatformSupportInterface.cs" />
     <Compile Include="Utils\FileUtils.cs" />
     <Compile Include="Library.cs" />
     <Compile Include="Build Files Base\ModuleDef.cs" />
@@ -85,7 +86,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) "C:\Users\AANdr\Dropbox\Engine\Engine\Repo\GraphicsEngine"</PostBuildEvent>
+    <PostBuildEvent>copy "$(TargetPath)" "C:\Users\AANdr\Documents\Dev\Engine\Engine\Repo\GraphicsEngine"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

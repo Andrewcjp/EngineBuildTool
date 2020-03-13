@@ -22,7 +22,12 @@ namespace EngineBuildTool
         public List<LibSearchPath> LibrarySearchPaths = new List<LibSearchPath>();
         public List<LibNameRef> StaticLibs = new List<LibNameRef>();
         public List<LibNameRef> DynamaicLibs = new List<LibNameRef>();
+        public List<string> UnsupportedPlatforms = new List<string>();
+        public List<PlatformID> UnsupportedPlatformsTypes = new List<PlatformID>();
         public string IncludeDir = "";
+        public List<LibDependency> StaticLibraries = new List<LibDependency>();
+        public List<string> Defines = new List<string>();
+        public List<string> LibDirs = new List<string>();
         public void Build()
         {
             if (IncludeDir.Length == 0)
@@ -42,18 +47,23 @@ namespace EngineBuildTool
                 List<string> files = p.GetFiles();
                 AddLibs(files, p.LibBuildConfig, p.IsLibaryDll);
             }
+            foreach(string s in UnsupportedPlatforms)
+            {
+                PlatformDefinition.TryAddPlatfromsFromString(s.ToLower(),ref UnsupportedPlatformsTypes);
+            }
         }
         void AddLibs(List<string> names, LibBuildConfig CFG, bool DLL = false)
         {
             foreach (string s in names)
             {
+                LibNameRef l = new LibNameRef(s, CFG, DLL);
                 if (DLL)
                 {
-                    DynamaicLibs.Add(new LibNameRef(s, CFG, DLL));
+                    DynamaicLibs.Add(l);
                 }
                 else
                 {
-                    StaticLibs.Add(new LibNameRef(s, CFG, DLL));
+                    StaticLibs.Add(l);
                 }
             }
         }
@@ -75,7 +85,7 @@ namespace EngineBuildTool
             {
                 AddLibSearch(ref LibrarySearchPaths, "\\DLLs\\Debug", LibBuildConfig.Debug, true);
                 AddLibSearch(ref LibrarySearchPaths, "\\DLLs\\Release", LibBuildConfig.Optimized, true);
- 
+
                 AddLibSearch(ref AddFolderOfLibs, "\\DLLs\\Debug", LibBuildConfig.Debug, true);
                 AddLibSearch(ref AddFolderOfLibs, "\\DLLs\\Release", LibBuildConfig.Optimized, true);
             }

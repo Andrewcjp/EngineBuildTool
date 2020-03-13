@@ -7,6 +7,7 @@ namespace EngineBuildTool
     {
         static void Main(string[] args)
         {
+            ModuleDefManager.USEPREMAKE = true;
             System.Diagnostics.Stopwatch Time = new System.Diagnostics.Stopwatch();
             Time.Start();
             for (int i = 0; i < args.Length; i++)
@@ -37,6 +38,10 @@ namespace EngineBuildTool
                 {
                     VisualStudioProjectEditor.AllowUnityBuild = false;
                 }
+                if (args.Contains("-premake"))
+                {
+                    ModuleDefManager.USEPREMAKE = true;
+                }                
             }
             else
             {

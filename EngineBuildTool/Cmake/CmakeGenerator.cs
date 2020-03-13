@@ -87,9 +87,9 @@ namespace EngineBuildTool
 
             if (EnableFastLink)
             {
-                OutputData += "set(CMAKE_EXE_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
-                OutputData += "set(CMAKE_MODULE_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
-                OutputData += "set(CMAKE_SHARED_LINKER_FLAGS_DEBUG \" /INCREMENTAL /debug:fastlink \")\n";
+                OutputData += "set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /INCREMENTAL /debug:fastlink \")\n";
+                OutputData += "set(CMAKE_MODULE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /INCREMENTAL /debug:fastlink \")\n";
+                OutputData += "set(CMAKE_SHARED_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} /INCREMENTAL /debug:fastlink \")\n";
             }
             OutputData += "set(CMAKE_CONFIGURATION_TYPES" + GetConfigNames(buildConfigs) + ")\n";
             OutputData += "set(CMAKE_SUPPRESS_REGENERATION true)\n";
@@ -118,6 +118,7 @@ namespace EngineBuildTool
         const string HeaderToolTarget = "HeaderTool";
         public override void GenerateList(List<ModuleDef> Modules, ModuleDef CoreModule, List<BuildConfig> buildConfigs)
         {
+            Console.WriteLine("Running CMake");
             Console.WriteLine("Targeting Platform " + SingleTargetPlatform.Name);
             GenHeader(buildConfigs);
             ProcessModule(CoreModule);

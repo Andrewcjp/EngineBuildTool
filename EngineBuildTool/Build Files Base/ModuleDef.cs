@@ -19,11 +19,36 @@ namespace EngineBuildTool
             IsDLL = IsaDLL;
         }
     }
+    public class LibDependency
+    {
+        public string LibName;
+        public List<PlatformID> Platforms = new List<PlatformID>();
+        public LibDependency(string name, string[] inplatforms = null)
+        {
+            LibName = name;
+            if (inplatforms != null)
+            {
+                foreach (string s in inplatforms)
+                {
+                    Platforms.Add(PlatformDefinition.ParseString(s));
+                }
+            }
+        }
+
+        public LibDependency(string name, string platfrom = null)
+        {
+            LibName = name;
+            if (platfrom != null)
+            {
+                Platforms.Add(PlatformDefinition.ParseString(platfrom));
+            }
+        }
+    }
     public class ModuleDef
     {
         public string ModuleName = "";
         public enum ModuleType { EXE, ModuleDLL, DLL, LIB };
-        public enum ProjectType { CPP,ManagedCPP,CSharp };        
+        public enum ProjectType { CPP, ManagedCPP, CSharp };
         public ProjectType LaunguageType = ProjectType.CPP;
         public ModuleType ModuleOutputType = ModuleType.ModuleDLL;
         public List<string> ModuleDepends = new List<string>();
@@ -56,6 +81,9 @@ namespace EngineBuildTool
         public List<string> NuGetPackages = new List<string>();
         public List<string> NetReferences = new List<string>();
         public List<string> UnsupportedPlatforms = new List<string>();
+        public List<string> ExcludedFolders = new List<string>();
+
+        public List<LibDependency> StaticLibraries = new List<LibDependency>();
         public bool IsOutputEXE = false;
         public ModuleDef(TargetRules Rules)
         { }
@@ -128,8 +156,20 @@ namespace EngineBuildTool
                 GetFiles("*.cs", ModuleDefManager.GetSourcePath() + "\\" + SourceFileSearchDir, true);
                 if (IsCoreModule)
                 {
-                    GetFiles("*.*", ModuleDefManager.GetRootPath() + "\\Shaders", false);
+                    GetFiles("*.hlsl", ModuleDefManager.GetRootPath() + "\\Shaders", false);
+                    GetFiles("*.h", ModuleDefManager.GetRootPath() + "\\Shaders", false);
                     ModuleExtraFiles.Add(StringUtils.SanitizePath(ModuleDefManager.GetSourcePath() + "\\Core.Target.cs"));
+                }
+            }
+            for (int i = 0; i < ModuleSourceFiles.Count; i++)
+            {
+                foreach (string folder in ExcludedFolders)
+                {
+                    string Safe = folder.Replace("*", "");
+                    if (ModuleSourceFiles[i].Contains(Safe))
+                    {
+                        ModuleSourceFiles[i] = "";
+                    } 
                 }
             }
         }
@@ -146,6 +186,7 @@ namespace EngineBuildTool
                 for (int i = 0; i < files.Length; i++)
                 {
                     files[i] = files[i].Replace(ModuleDefManager.GetSourcePath() + "\\", "");
+                    files[i] = files[i].Replace(ModuleDefManager.GetRootPath() + "\\", "../");
                     files[i] = StringUtils.SanitizePath(files[i]);
                 }
                 if (Source)
@@ -166,9 +207,12 @@ namespace EngineBuildTool
         {
             for (int i = 0; i < IncludeDirectories.Count; i++)
             {
+                if (IncludeDirectories[i].Contains("$"))
+                {
+                    continue;
+                }
                 IncludeDirectories[i] = StringUtils.SanitizePath(ModuleDefManager.GetRootPath() + IncludeDirectories[i]);
             }
         }
-
     }
 }

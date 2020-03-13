@@ -124,12 +124,14 @@ namespace EngineBuildTool
             foreach (string s in Excludes)
             {
                 string parsed = StringUtils.SanitizePathToDoubleBack(s);
+                string RelPath = parsed.Replace(StringUtils.SanitizePathToDoubleBack(Directory.GetCurrentDirectory()), "..");
+                //..\Source\Core\AI\Core\AIBase.cpp
                 XmlNodeList cc = doc.SelectNodes("//a:ClCompile[*]", nsmgr);
                 foreach (XmlNode nn in cc)
-                {
+                { 
                     if (nn.Attributes.Count > 0)
                     {
-                        if (nn.Attributes[0].Value == parsed)
+                        if (nn.Attributes[0].Value == RelPath)
                         {
                             nn.FirstChild.InnerText = "false";
                         }

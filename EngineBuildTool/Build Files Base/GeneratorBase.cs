@@ -14,5 +14,18 @@ namespace EngineBuildTool
         public abstract void Execute();
         public abstract void RunPostStep(List<ModuleDef> Modules, ModuleDef CoreModule);
         public abstract void ClearCache();
+        public virtual bool PushPlatformFilter(PlatformID Type)
+        {
+            return true;
+        }
+        public virtual bool PushPlatformFilter(PlatformID[] Type)
+        {
+            return true;
+        }
+        public virtual bool PushFilter(PlatformID Type, string BuildType)
+        {
+            return true;
+        }
+        public virtual void PopFilter() { }
     }
 }

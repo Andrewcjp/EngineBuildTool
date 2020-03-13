@@ -11,7 +11,7 @@ namespace EngineBuildTool
     public class ModuleDefManager
     {
         Library Projectdata;
-        public string SourceDir = "";
+        public static string SourceDir = "";
 
         string BuildAssembly = "BuildCsFiles.dll";
         const string BuildCsString = ".Build";
@@ -22,13 +22,15 @@ namespace EngineBuildTool
         const string DefaultTargetRulesName = "CoreTargetRules";
         public string TargetRulesName = "";
         List<ModuleDef> ALLModules = new List<ModuleDef>();
+        public static bool USEPREMAKE = false;
+        public static ModuleDefManager Instance;
         public static bool IsDebug()
         {
             return false;
         }
         public static string GetSourcePath()
         {
-            return Directory.GetCurrentDirectory() + "\\Source";
+            return SourceDir;
         }
         public static string GetRootPath()
         {
@@ -64,7 +66,19 @@ namespace EngineBuildTool
         }
         public ModuleDefManager()
         {
-            SourceDir = GetSourcePath();
+            Instance = this;
+            SourceDir = Directory.GetCurrentDirectory() + "\\Source"; ;
+#if DEBUG 
+            SourceDir = "C:\\Users\\AANdr\\Documents\\Dev\\Engine\\Engine\\Repo\\GraphicsEngine\\Source\\";
+            if (Directory.Exists(SourceDir))
+            {
+                USEPREMAKE = true;             
+            }
+            else
+            {
+                SourceDir = Directory.GetCurrentDirectory() + "\\Source"; ;
+            }
+#endif
             Projectdata = new Library();
             SettingCache.Load();
         }
@@ -104,6 +118,7 @@ namespace EngineBuildTool
             List<string> SourceFiles = new List<string>();
             string[] files = Directory.GetFiles(SourceDir, "*" + BuildCsString + ".cs", SearchOption.AllDirectories);
             SourceFiles.AddRange(files);
+            FindPlatfromInterface(ref SourceFiles);
             const string ModuleSufix = "Module";
             foreach (string s in files)
             {
@@ -125,7 +140,7 @@ namespace EngineBuildTool
                 Environment.Exit(1);
             }
             AppDomain.CurrentDomain.Load(CompiledAssembly.GetName());
-
+            SetupPlatfromInterface();
 
             if (TargetRulesName.Length == 0)
             {
@@ -168,6 +183,7 @@ namespace EngineBuildTool
             }
             InitObjectsOfType(ModuleNames, ref NonCoreModuleObjects, CompiledAssembly, ModuleSufix);
             ALLModules.AddRange(NonCoreModuleObjects);
+
         }
 
         void InitObjectsOfType<T>(List<string> Names, ref List<T> ConstructedObjects, Assembly CompiledAssembly, string Sufix = "")
@@ -194,9 +210,9 @@ namespace EngineBuildTool
                         Constructor = ObjectType.GetConstructor(new Type[] { });
                         if (Constructor != null)
                         {
-                            Constructor.Invoke(RulesObject, new object[] {});
+                            Constructor.Invoke(RulesObject, new object[] { });
                         }
-                    } 
+                    }
                     ConstructedObjects.Add(RulesObject);
                 }
             }
@@ -205,18 +221,23 @@ namespace EngineBuildTool
         public static ModuleDef CoreModule = null;
         public static List<BuildConfig> CurrentConfigs = new List<BuildConfig>();
         const bool LogDebug = true;
+        GeneratorBase gen;
         public void Run()
         {
             LogStage("Generate Stage");
             CurrentConfigs = BuildConfiguration.GetDefaultConfigs();
             Directory.CreateDirectory(GetIntermediateDir());
             GatherModuleFiles();
-            PlatformDefinition.Init();
-#if false
-            GeneratorBase gen = new PreMakeGenerator();
-#else
-            GeneratorBase gen = new CmakeGenerator();
-#endif
+            PlatformDefinition.Init(Interfaces);
+
+            if (USEPREMAKE)
+            {
+                gen = new PreMakeGenerator();
+            }
+            else
+            {
+                gen = new CmakeGenerator();
+            }
             //core module Is Special!
             CoreModule = TargetRulesObject.GetCoreModule();
             for (int i = ALLModules.Count - 1; i >= 0; i--)
@@ -244,8 +265,8 @@ namespace EngineBuildTool
                 gen.ClearCache();
                 Console.WriteLine("CMake cache Is Invalid, clearing...");
             }
-            Console.WriteLine("Running CMake");
-            gen.SingleTargetPlatform = PlatformDefinition.GetDefinition(PlatformDefinition.Platforms.Windows);
+
+            gen.SingleTargetPlatform = PlatformDefinition.GetDefinition(PlatformDefinition.WindowsID);
             gen.GenerateList(ALLModules, CoreModule, CurrentConfigs);
             gen.Execute();
             LogStage("Post Gen");
@@ -298,7 +319,7 @@ namespace EngineBuildTool
                 def.PostInit(TargetRulesObject);
                 if (def.ModuleOutputType == ModuleDef.ModuleType.LIB)
                 {
-                   // CoreModule.ModuleDepends.Add(def.ModuleName);
+                    // CoreModule.ModuleDepends.Add(def.ModuleName);
                 }
                 if (def.NeedsCore)
                 {
@@ -308,13 +329,13 @@ namespace EngineBuildTool
                 {
                     Projectdata.LibSearchPaths.AddRange(def.AdditonalLibSearchPaths);
                 }
-                if(def.LaunguageType == ModuleDef.ProjectType.CSharp)
+                if (def.LaunguageType == ModuleDef.ProjectType.CSharp)
                 {
                     //add the system links
                     def.NetReferences.Add("System.Windows.Forms");
                 }
             }
-            
+
         }
 
         void ProcessModules()
@@ -356,6 +377,49 @@ namespace EngineBuildTool
             Console.WriteLine("Compile Successful");
 
             return CompileResults.CompiledAssembly;
+        }
+        void FindPlatfromInterface(ref List<string> SourceFiles)
+        {
+            string targetdir = SourceDir + "\\ExtraPlatforms\\";
+            if (!Directory.Exists(targetdir))
+            {
+                return;
+            }
+            string[] files = Directory.GetFiles(targetdir, "*" + "Platform" + ".cs", SearchOption.AllDirectories);
+            SourceFiles.AddRange(files);
+            foreach (string s in files)
+            {
+                string name = Path.GetFileName(s).ToLower().Replace(".platform.cs", "");
+                PlatfromModuleNames.Add(name);
+            }
+        }
+        List<string> PlatfromModuleNames = new List<string>();
+        List<PlatformSupportInterface> Interfaces = new List<PlatformSupportInterface>();
+        void SetupPlatfromInterface()
+        {
+            InitObjectsOfType(PlatfromModuleNames, ref Interfaces, CompiledAssembly, "platform");
+        }
+        public void OnPreMakeAddLibs(ModuleDef m, BuildConfig BC, PlatformDefinition PD, ref string Dllout)
+        {
+            foreach (PlatformSupportInterface i in Interfaces)
+            {
+                i.OnPreMakeAddLibs(m, BC, PD,ref Dllout);
+            }
+
+        }
+        public void OnPreMakeWriteModule(ModuleDef n, ref string PremakeFile)
+        {
+            foreach (PlatformSupportInterface i in Interfaces)
+            {
+                i.OnPreMakeCreateModule(n, ref PremakeFile, gen);
+            }
+        }
+        public void PatchPremakeFileHeader(ref string premakefile)
+        {
+            foreach (PlatformSupportInterface i in Interfaces)
+            {
+                i.PatchPremakeFileHeader( ref premakefile);
+            }
         }
     }
 }

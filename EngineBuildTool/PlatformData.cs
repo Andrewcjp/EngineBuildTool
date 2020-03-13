@@ -16,7 +16,7 @@ namespace EngineBuildTool
                     return "10.0.18362.0";
                 case "1809":
                     return "10.0.17763.0";
-                case "1803":
+                case "1803": 
                     return "10.0.17134.0";
             }
             return "10.0.18362.0";
