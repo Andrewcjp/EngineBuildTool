@@ -23,6 +23,7 @@ namespace EngineBuildTool
     {
         public string LibName;
         public List<PlatformID> Platforms = new List<PlatformID>();
+        public bool NeedsDll = true;
         public LibDependency(string name, string[] inplatforms = null)
         {
             LibName = name;
@@ -40,9 +41,36 @@ namespace EngineBuildTool
             LibName = name;
             if (platfrom != null)
             {
-                Platforms.Add(PlatformDefinition.ParseString(platfrom));
+                if (platfrom.ToLower() == "all")
+                {
+                    Platforms.AddRange(PlatformID.Ids);
+                }
+                else
+                {
+                    Platforms.Add(PlatformDefinition.ParseString(platfrom));
+                }
             }
         }
+    }
+    public class FolderPlatformPair
+    {
+        public string FolderName;
+        public List<PlatformID> Platforms = new List<PlatformID>();
+        public FolderPlatformPair(string name, string platfrom = null)
+        {
+            FolderName = name;
+            if (platfrom != null)
+            {
+                if (platfrom.ToLower() == "all")
+                {
+                    Platforms.AddRange(PlatformID.Ids);
+                }
+                else
+                {
+                    PlatformDefinition.TryAddPlatfromsFromString(platfrom, ref Platforms);
+                }
+            }
+        }      
     }
     public class ModuleDef
     {
@@ -81,8 +109,9 @@ namespace EngineBuildTool
         public List<string> NuGetPackages = new List<string>();
         public List<string> NetReferences = new List<string>();
         public List<string> UnsupportedPlatforms = new List<string>();
+        public List<string> ExcludeConfigs = new List<string>();
         public List<string> ExcludedFolders = new List<string>();
-
+        public List<FolderPlatformPair> ExcludedFoldersNew = new List<FolderPlatformPair>();
         public List<LibDependency> StaticLibraries = new List<LibDependency>();
         public bool IsOutputEXE = false;
         public ModuleDef(TargetRules Rules)
@@ -120,6 +149,17 @@ namespace EngineBuildTool
                 L.BuildCFg = LibBuildConfig.General;
                 L.BuildType = Library.BCToString(LibBuildConfig.General);
                 ModuleLibs.Add(L);
+            }
+            foreach (LibDependency l in StaticLibraries)
+            {
+                if (l.NeedsDll)
+                {
+                    LibNameRef lref;
+                    lref.Config = LibBuildConfig.General;
+                    lref.IsDLL = true;
+                    lref.LibName = l.LibName.Replace(".lib",".dll");
+                    DLLs.Add(lref);
+                }
             }
         }
 
@@ -169,7 +209,7 @@ namespace EngineBuildTool
                     if (ModuleSourceFiles[i].Contains(Safe))
                     {
                         ModuleSourceFiles[i] = "";
-                    } 
+                    }
                 }
             }
         }

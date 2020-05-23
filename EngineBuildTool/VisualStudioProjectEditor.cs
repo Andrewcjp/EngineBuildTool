@@ -133,7 +133,13 @@ namespace EngineBuildTool
                     {
                         if (nn.Attributes[0].Value == RelPath)
                         {
-                            nn.FirstChild.InnerText = "false";
+                            foreach (XmlNode child in nn.ChildNodes)
+                            {
+                                if (child.Name == "IncludeInUnityFile")
+                                {
+                                    child.InnerText = "false";
+                                }
+                            }
                         }
                     }
                 }

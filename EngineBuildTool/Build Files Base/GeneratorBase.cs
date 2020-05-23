@@ -14,11 +14,11 @@ namespace EngineBuildTool
         public abstract void Execute();
         public abstract void RunPostStep(List<ModuleDef> Modules, ModuleDef CoreModule);
         public abstract void ClearCache();
-        public virtual bool PushPlatformFilter(PlatformID Type)
+        public virtual bool PushPlatformFilter(PlatformID Type, string extra = "")
         {
             return true;
         }
-        public virtual bool PushPlatformFilter(PlatformID[] Type)
+        public virtual bool PushPlatformFilter(PlatformID[] Type, string extra = "")
         {
             return true;
         }

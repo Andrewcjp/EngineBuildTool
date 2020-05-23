@@ -26,7 +26,7 @@ namespace EngineBuildTool
             List<BuildConfig> Configs = new List<BuildConfig>();
             Configs.Add(new BuildConfig("Debug", BuildType.Debug, PackageType.Editor));
             Configs.Add(new BuildConfig("Release", BuildType.Release, PackageType.Editor));
-            Configs.Add(new BuildConfig("Development", BuildType.Release, PackageType.Editor));
+            //Configs.Add(new BuildConfig("Development", BuildType.Release, PackageType.Editor));
             Configs.Add(new BuildConfig("DebugPackage", BuildType.Debug, PackageType.Package));
             Configs.Add(new BuildConfig("ReleasePackage", BuildType.Release, PackageType.Package));
             Configs.Add(new BuildConfig("ShippingDebugPackage", BuildType.Debug, PackageType.ShippingPackage));

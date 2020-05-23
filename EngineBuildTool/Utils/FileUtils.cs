@@ -123,13 +123,9 @@ namespace EngineBuildTool
                     if ((Instance.GetState() & InstanceState.Local) == InstanceState.Local)
                     {
                         string VersionString = Instance.GetDisplayName();
-                        if (VersionString.Contains("17"))
+                        if (VersionString.Contains("19"))
                         {
                             return true;
-                        }
-                        else if (VersionString.Contains("15"))
-                        {
-                            return false;
                         }
                     }
                 }

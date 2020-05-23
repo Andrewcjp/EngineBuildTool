@@ -104,7 +104,7 @@ namespace EngineBuildTool
                 GlobalDefines.Add("PLATFORM_RT");
             }
         }
-        public bool Win_SupportsRT() 
+        public bool Win_SupportsRT()
         {
             int VersionNum = 0;
             int.TryParse(WindowTenVersionTarget, out VersionNum);

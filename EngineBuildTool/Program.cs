@@ -21,18 +21,13 @@ namespace EngineBuildTool
                 {
                     manager.TargetRulesName = args[0];
                 }
-
-                if (args.Contains("-vs15"))
+                if (args.Contains("-vs19"))
                 {
-                    CmakeGenerator.UseVs17 = false;
-                }
-                else if (args.Contains("-vs17"))
-                {
-                    CmakeGenerator.UseVs17 = true;
+                    PreMakeGenerator.Use2019 = true;
                 }
                 else
                 {
-                    CmakeGenerator.UseVs17 = FileUtils.FindVSVersion();
+                    PreMakeGenerator.Use2019 = false;// FileUtils.FindVSVersion();     
                 }
                 if (args.Contains("-nounity"))
                 {

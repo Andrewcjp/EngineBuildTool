@@ -77,41 +77,44 @@ namespace EngineBuildTool
             }
             return false;
         }
-        public void CopyDllsToConfig(List<BuildConfig> configs, List<ModuleDef> ALLModules)
+        public void CopyDllsToConfig(List<PlatformDefinition>  Platforms,List<BuildConfig> configs, List<ModuleDef> ALLModules)
         {
-            foreach (BuildConfig bc in configs)
+            foreach (PlatformDefinition PD in Platforms)
             {
-                Console.WriteLine("Copying Files for: '" + bc.Name + "' Of type " + bc.CurrentType.ToString());
-                List<string> DLLsForConfig = new List<string>();
-                foreach (ModuleDef M in ALLModules)
+                foreach (BuildConfig bc in configs)
                 {
-                    foreach (LibNameRef LNR in M.DLLs)
+                    Console.WriteLine("Copying Files for: '" + bc.Name + "' Of type " + bc.CurrentType.ToString());
+                    List<string> DLLsForConfig = new List<string>();
+                    foreach (ModuleDef M in ALLModules)
                     {
-                        LibRef DLLref = null;
-                        GetLib(LNR.LibName, out DLLref, LibBuildConfig.General, true);
-                        if (DLLref == null)
+                        foreach (LibNameRef LNR in M.DLLs)
                         {
-                            Console.WriteLine("Error Failed to find DLL " + LNR.LibName);
-                            continue;
-                        }
-                        if (!IsValidConfig(DLLref.BuildCFg, bc.GetLibType()))
-                        {
-                            continue;
-                        }
-                        string filepath = ModuleDefManager.GetBinPath() + "\\" + bc.Name + "\\" + Path.GetFileName(LNR.LibName);
-                       
-                        if (File.Exists(filepath))
-                        {
-                            if(File.GetLastWriteTime(filepath) >= File.GetLastWriteTime(DLLref.Path))
+                            LibRef DLLref = null;
+                            GetLib(LNR.LibName, out DLLref, LibBuildConfig.General, true);
+                            if (DLLref == null)
+                            {
+                                Console.WriteLine("Error Failed to find DLL " + LNR.LibName);
+                                continue;
+                            }
+                            if (!IsValidConfig(DLLref.BuildCFg, bc.GetLibType()))
                             {
                                 continue;
                             }
-                        }
-                        Directory.CreateDirectory(Path.GetDirectoryName(filepath));
-                        File.Copy(DLLref.Path, filepath, true);
-                        if (ModuleDefManager.IsDebug())
-                        {
-                            Console.WriteLine("Copied " + Path.GetFileName(LNR.LibName) + " to output dir");
+                            string filepath = ModuleDefManager.GetBinPath() + "\\" + PD.Name + "\\" + bc.Name + "\\" + Path.GetFileName(LNR.LibName);
+
+                            if (File.Exists(filepath))
+                            {
+                                if (File.GetLastWriteTime(filepath) >= File.GetLastWriteTime(DLLref.Path))
+                                {
+                                    continue;
+                                }
+                            }
+                            Directory.CreateDirectory(Path.GetDirectoryName(filepath));
+                            File.Copy(DLLref.Path, filepath, true);
+                            if (ModuleDefManager.IsDebug())
+                            {
+                                Console.WriteLine("Copied " + Path.GetFileName(LNR.LibName) + " to output dir");
+                            }
                         }
                     }
                 }

@@ -38,9 +38,14 @@ namespace EngineBuildTool
         {
             // Use string Join to concatenate the string elements.
             string result = "";
-            foreach (string s in array)
+            for (int i = 0; i < array.Length; i++)
             {
-                result += "\"" + s + "\", ";
+                if (i > 0)
+                {
+                    result += ", ";
+                }
+                string s = array[i];
+                result += "\"" + s+ "\"";
             }
             return result;
         }

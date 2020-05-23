@@ -61,12 +61,14 @@ namespace EngineBuildTool
             TypeId = type;
         }
         public string Name = "";
+        public string DisplayName = "";
         public List<string> Defines = new List<string>();
         //public Platforms Type = Platforms.Limit;
         public PlatformID TypeId = PlatformID.Invalid;
         public string SystemType = "windows";
         public string SystemVersion = "";
         public string ProcessorArch = "x64";
+        public string ExcludedPlatformFolder = "**windows/**";
         public static List<PlatformDefinition> GetDefaultPlatforms()
         {
             return Definitions;
@@ -88,7 +90,12 @@ namespace EngineBuildTool
             {
                 i.AddPlatforms(ref Definitions);
             }
-
+            Console.WriteLine("Target Platforms:");
+            foreach(PlatformDefinition pd in Definitions)
+            {
+                Console.WriteLine(pd.Name);
+            }
+            Console.WriteLine("");
         }
         void PrintPlatforms()
         {
@@ -137,12 +144,14 @@ namespace EngineBuildTool
         }
         public static void TryAddPlatfromsFromString(string data, ref List<PlatformID> list)
         {
+            data = data.ToLower();
+            bool Flip = data.Contains("!");
+            data = data.Replace("!", "");
             Regex reg = new Regex(WildcardToRegex(data));
             
             for (int i = 0; i < PlatformID.GetIdCount(); i++)
-            {
-              
-                if (reg.IsMatch(PlatformID.Ids[i].GetName().ToLower()))
+            {          
+                if (reg.IsMatch(PlatformID.Ids[i].GetName().ToLower()) == !Flip)
                 {
                     list.Add(PlatformID.Ids[i]);
                 }

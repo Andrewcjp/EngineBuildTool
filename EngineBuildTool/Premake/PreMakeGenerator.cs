@@ -11,6 +11,7 @@ namespace EngineBuildTool
     {
         string DefinitionFile = "";
         string outputdata = "";
+        public static bool Use2019 = false;
         public override void ClearCache()
         {
 
@@ -29,7 +30,7 @@ namespace EngineBuildTool
             outputdata += "workspace 'Engine'\n";
             outputdata += " location \"" + StringUtils.SanitizePath(ModuleDefManager.GetIntermediateDir()) + "\"\n";
             string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath());
-            outputdata += "     targetdir  \"" + OutputDir + "\"";
+            outputdata += "     targetdir  \"" + OutputDir + "\"\n";
             string Configurations = "";
             foreach (BuildConfig B in buildConfigs)
             {
@@ -88,9 +89,10 @@ namespace EngineBuildTool
 
             File.WriteAllText(DefinitionFile, outputdata);
         }
-        public override bool PushPlatformFilter(PlatformID[] Types)
+        public override bool PushPlatformFilter(PlatformID[] Types, string extra = "")
         {
             string Platforms = "";
+
             for (int i = 0; i < Types.Length; i++)
             {
 
@@ -101,7 +103,7 @@ namespace EngineBuildTool
                 }
                 if (PlatformDefinition.GetDefinition(Types[i]) == null)
                 {
-                    return false;
+                    continue;
                 }
                 Platforms += PlatformDefinition.GetDefinition(Types[i]).Name;
                 if (Types.Length > 1 && i != (Types.Length - 1))
@@ -109,11 +111,17 @@ namespace EngineBuildTool
                     Platforms += " or ";
                 }
             }
-            outputdata += "filter{\"platforms: " + Platforms + "\"}\n";
+            outputdata += "filter{";
+            if (extra.Length > 0)
+            {
+                outputdata += "\"" + extra + "\",";
+            }
+            outputdata += "\"platforms:" + Platforms;
+            outputdata += "\"}\n";
             return true;
         }
 
-        public override bool PushPlatformFilter(PlatformID Type)
+        public override bool PushPlatformFilter(PlatformID Type, string extra = "")
         {
             if (Type == PlatformID.Invalid)
             {
@@ -158,14 +166,21 @@ namespace EngineBuildTool
             string AllSourceFiles = StringUtils.ArrayStringQuotesComma(m.ModuleSourceFiles.ToArray());
             string ExtraSourceFiles = StringUtils.ArrayStringQuotesComma(m.ModuleExtraFiles.ToArray());
             List<string> ABSSourceFiles = m.ModuleSourceFiles;
-            string ALLFiles = AllSourceFiles + ExtraSourceFiles;
+            string ALLFiles = AllSourceFiles + ", " + ExtraSourceFiles;
 
             outputdata += "\n--Begin Module " + m.ModuleName + "\n";
             outputdata += "group \"" + StringUtils.SanitizePath(m.SolutionFolderPath) + "\"\n";
             outputdata += "project '" + m.ModuleName + "' \n";
             if (m.ModuleOutputType == ModuleDef.ModuleType.EXE)
             {
-                outputdata += "     kind \"WindowedApp\"\n";
+                if (m.UseConsoleSubSystem)
+                {
+                    outputdata += "     kind \"ConsoleApp\"\n";
+                }
+                else
+                {
+                    outputdata += "     kind \"WindowedApp\"\n";
+                }
             }
             else if (m.ModuleOutputType == ModuleDef.ModuleType.LIB)
             {
@@ -179,13 +194,14 @@ namespace EngineBuildTool
             outputdata += "     language \"" + ConvertLanguage(m) + "\"\n";
             outputdata += "     flags {\"NoImportLib\"}\n";
             outputdata += "     editandcontinue \"Off\" \n";
+            outputdata += "     cppdialect \"C++17\"\n";
 
             PushPlatformFilter(PlatformDefinition.WindowsID);
             outputdata += "     buildoptions  {\"/bigobj\"}\n";
             outputdata += "     flags {\"NoImportLib\", \"MultiProcessorCompile\"}\n";
             PopFilter();
 
-          
+
             ModuleDefManager.Instance.OnPreMakeWriteModule(m, ref outputdata);
 
             if (PushPlatformFilter(PlatformDefinition.AndroidID))
@@ -227,9 +243,52 @@ namespace EngineBuildTool
             }
             if (m.ExcludedFolders.Count > 0)
             {
-                outputdata += "removefiles { " + StringUtils.ArrayStringQuotesComma(m.ExcludedFolders.ToArray()) /*+ " \"**.hlsl\""*/+ " }\n";
+                outputdata += "removefiles { " + StringUtils.ArrayStringQuotesComma(m.ExcludedFolders.ToArray()) + " }\n";
+            } 
+            if (m.ExcludeConfigs.Count > 0)
+            {
+                outputdata += "removeconfigurations{" + StringUtils.ArrayStringQuotesComma(m.ExcludeConfigs.ToArray()) + "};\n";
             }
-            outputdata += "     filter{\"files:**.hlsl\"}\n  flags{ \"ExcludeFromBuild\" }\n ";
+            if (m.ExcludedFoldersNew.Count > 0)
+            {
+                foreach (FolderPlatformPair p in m.ExcludedFoldersNew)
+                {
+                    PushPlatformFilter(p.Platforms.ToArray(), "files:" + p.FolderName);
+                    outputdata += "flags{ \"ExcludeFromBuild\" }\n ";
+                    PopFilter();
+                }
+            }
+            List<PlatformID> MergePlatoforms = new List<PlatformID>();
+            foreach (PlatformDefinition PD in Platforms)
+            {
+                if (MergePlatoforms.Contains(PD.TypeId))
+                {
+                    continue;
+                }
+                List<PlatformID> AllOthers = new List<PlatformID>();
+                PlatformDefinition.TryAddPlatfromsFromString("!" + PD.Name, ref AllOthers);
+                for (int i = AllOthers.Count - 1; i >= 0; i--)
+                {
+                    if (PlatformDefinition.GetDefinition(AllOthers[i]) != null && PlatformDefinition.GetDefinition(AllOthers[i]).ExcludedPlatformFolder == PD.ExcludedPlatformFolder)
+                    {
+                        MergePlatoforms.Add(AllOthers[i]);
+                        AllOthers.RemoveAt(i);
+                    }
+                }
+
+                foreach (PlatformID i in AllOthers)
+                {
+                    if (PlatformDefinition.GetDefinition(i) != null)
+                    {
+                        PlatformID[] d = { i };
+                        PushPlatformFilter(d, "files:" + PD.ExcludedPlatformFolder);
+                        outputdata += "flags{\"ExcludeFromBuild\"}\n ";
+                        PopFilter();
+                    }
+                }
+            }
+            //outputdata += "     filter{\"files:**.*\",\"platforms:Win64\"}\n  flags{\"ExcludeFromBuild\"}\n ";
+            outputdata += "     filter{\"files:**.hlsl\"}\n  flags{\"ExcludeFromBuild\"}\n ";
             PopFilter();
             foreach (PlatformDefinition PD in Platforms)
             {
@@ -245,7 +304,7 @@ namespace EngineBuildTool
                     {
                         PushFilter(PD.TypeId, "\"configurations:" + Bc.Name + "\"");
                         outputdata += "          links { " + Links + "}\n";
-                        string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + Bc.Name;
+                        string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + PD.Name + "/" + Bc.Name;
                         outputdata += "          targetdir  (\"" + OutputDir + "\")\n";
                         if (m.OutputObjectName.Length != 0)
                         {
@@ -270,6 +329,10 @@ namespace EngineBuildTool
                 }
             }
             PopFilter();
+            if (m.IsCoreModule)
+            {
+                outputdata += "prebuildcommands(\"$(MSBuildProjectDirectory)/../Scripts/WriteCommit.bat\")\n";
+            }
 
 
         }
@@ -292,7 +355,7 @@ namespace EngineBuildTool
             {
                 LibRef r = new LibRef();
                 r.TargetPlatform = PlatformID.Invalid;
-                string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + BC.Name;
+                string OutputDir = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()) + "/" + PD.Name + "/" + BC.Name;
                 r.Path = OutputDir + "/Core.lib";
                 AllLibs.Add(r);
                 AllLibs.AddRange(ModuleDefManager.CoreModule.ModuleLibs);
@@ -300,6 +363,7 @@ namespace EngineBuildTool
             //new core
             List<LibDependency> StaticLibs = new List<LibDependency>();
             StaticLibs.AddRange(m.StaticLibraries);
+
             foreach (ExternalModuleDef ExtraMods in m.ExternalModules)
             {
                 // if (!ExtraMods.UnsupportedPlatformsTypes.Contains(""))
@@ -352,9 +416,14 @@ namespace EngineBuildTool
         public override void Execute()
         {
             string premakeExe = ModuleDefManager.GetRootPath() + "\\Scripts\\premake5.exe";
-            string Args = "vs2017 --file=\"" + DefinitionFile + "\"";
-            int code = ProcessUtils.RunProcess(premakeExe, Args);
-
+            string Args = (Use2019 ? "vs2019" : "vs2017 ") + " --file=\"" + DefinitionFile + "\"";
+            int code = -1;
+            try
+            {
+                code = ProcessUtils.RunProcess(premakeExe, Args);
+            }
+            catch
+            { }
             Console.WriteLine("PreMake finished with Code: " + code);
         }
         string BuildAllTarget = "BuildAll";
@@ -368,15 +437,16 @@ namespace EngineBuildTool
                 VisualStudioProjectEditor.ReplaceAllModule(m, "$(Console_Libs).lib", "$(Console_Libs)");
             }
             VisualStudioProjectEditor.ReplaceAllModule(CoreModule, "$(Console_Libs).lib", "$(Console_Libs)");
-            foreach (BuildConfig bc in ModuleDefManager.CurrentConfigs)
-            {
-                string path = StringUtils.SanitizePath(ModuleDefManager.GetBinPath() + "\\" + bc.Name + "\\");
-                VisualStudioProjectEditor.SetTargetOutput(BuildAllTarget, path, CoreModule.OutputObjectName, bc.Name);
-            }
+            //foreach (BuildConfig bc in ModuleDefManager.CurrentConfigs)
+            //{
+            //    string path = StringUtils.SanitizePath(ModuleDefManager.GetBinPath()/* + "\\" + PD.Name*/ + "\\" + bc.Name + "\\");
+            //    VisualStudioProjectEditor.SetTargetOutput(BuildAllTarget, path, CoreModule.OutputObjectName, bc.Name);
+            //}
 
         }
         void AddCustomTargets(List<ModuleDef> Modules, List<BuildConfig> buildConfigs)
         {
+            List<PlatformDefinition> Platforms = PlatformDefinition.GetDefaultPlatforms();
             outputdata += "group \" Build/\"\n";
             outputdata += "project \"HeaderTool\"\n";
             outputdata += "kind (\"Makefile\")\n";
@@ -385,7 +455,24 @@ namespace EngineBuildTool
             headertoolString += " -Name " + ModuleDefManager.CoreModule.GameModuleName;
             Console.WriteLine("Game Module is " + ModuleDefManager.CoreModule.GameModuleName);
             outputdata += "buildcommands {\" " + headertoolString + "  \"}\n";
-            // outputdata += "buildoutputs {  '" + StringUtils.SanitizePath(ModuleDefManager.GetIntermediateDir() + "\\Generated\\Core\\Core\\Components\\LightComponent.generated.h") + "' }\n";
+            foreach (PlatformDefinition PD in Platforms)
+            {
+                if (PD == null)
+                {
+                    continue;
+                }
+
+                foreach (BuildConfig Bc in buildConfigs)
+                {
+                    if (Bc.CurrentPackageType == BuildConfiguration.PackageType.Package)
+                    {
+                        PushFilter(PD.TypeId, "\"configurations:" + Bc.Name + "\"");
+                        outputdata += "     buildcommands{\"$(MSBuildProjectDirectory)/../Binaries/Win64/Release/StandaloneShaderComplier.exe " + PD.Name + "\"}\n";
+                    }
+                }
+            }
+            PopFilter();
+            // outputdata += "buildoutputs {  '" + StringUtils.SanitizePath(ModuleDefManager.GetIntermediate Dir() + "\\Generated\\Core\\Core\\Components\\LightComponent.generated.h") + "' }\n";
 
         }
     }

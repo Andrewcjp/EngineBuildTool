@@ -259,11 +259,11 @@ namespace EngineBuildTool
             PreProcessModules();
             Projectdata.PopulateLibs();
             ProcessModules();
-            LogStage("CMake Stage");
+            LogStage("Generate project files stage");
             if (!SettingCache.IsCacheValid())
             {
                 gen.ClearCache();
-                Console.WriteLine("CMake cache Is Invalid, clearing...");
+                Console.WriteLine("Cache Is Invalid, clearing...");
             }
 
             gen.SingleTargetPlatform = PlatformDefinition.GetDefinition(PlatformDefinition.WindowsID);
@@ -273,16 +273,16 @@ namespace EngineBuildTool
             gen.RunPostStep(NonCoreModuleObjects, CoreModule);
             LogStage("Copy DLLs");
             FileUtils.CreateShortcut("EngineSolution.sln", GetRootPath(), GetIntermediateDir() + "\\Engine.sln");
-            Projectdata.CopyDllsToConfig(CurrentConfigs, ALLModules);
+            Projectdata.CopyDllsToConfig(PlatformDefinition.GetDefaultPlatforms(), CurrentConfigs, ALLModules);
             LinkDirectiories();
             SettingCache.Save();
             LogStage("Complete");
 
         }
-        void LinkPackageDir(string directoryname, string configname)
+        void LinkPackageDir(string directoryname, string configname, PlatformDefinition PD)
         {
             string SRC = GetRootPath() + "\\" + directoryname;
-            string Target = GetBinPath() + "\\" + configname + "\\" + directoryname;
+            string Target = GetBinPath() + "\\" + PD.Name + "\\" + configname + "\\" + directoryname;
             FileUtils.CreateSymbolicLink(SRC, Target, true);
         }
         void LinkDirectiories()
@@ -291,8 +291,8 @@ namespace EngineBuildTool
             {
                 if (bc.CurrentPackageType != BuildConfiguration.PackageType.Editor)
                 {
-                    LinkPackageDir("DerivedDataCache", bc.Name);
-                    LinkPackageDir("Content", bc.Name);
+                    LinkPackageDir("DerivedDataCache", bc.Name, PlatformDefinition.GetDefinition(PlatformDefinition.WindowsID));
+                    LinkPackageDir("Content", bc.Name, PlatformDefinition.GetDefinition(PlatformDefinition.WindowsID));
                 }
             }
         }
@@ -403,7 +403,7 @@ namespace EngineBuildTool
         {
             foreach (PlatformSupportInterface i in Interfaces)
             {
-                i.OnPreMakeAddLibs(m, BC, PD,ref Dllout);
+                i.OnPreMakeAddLibs(m, BC, PD, ref Dllout);
             }
 
         }
@@ -418,7 +418,7 @@ namespace EngineBuildTool
         {
             foreach (PlatformSupportInterface i in Interfaces)
             {
-                i.PatchPremakeFileHeader( ref premakefile);
+                i.PatchPremakeFileHeader(ref premakefile);
             }
         }
     }
